@@ -1,0 +1,40 @@
+<div class="container">
+  <h2>Pesquisa de Voos Baratos - Ryanair</h2>
+
+  <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="form-grid">
+    <div class="form-group">
+      <label for="origin">Origem (IATA):</label>
+      <input id="origin" type="text" formControlName="origin" placeholder="Ex: LIS" />
+    </div>
+
+    <div class="form-group">
+      <label for="destination">Destino (IATA - Opcional):</label>
+      <input id="destination" type="text" formControlName="destination" placeholder="Ex: CRL" />
+    </div>
+
+    <div class="form-group">
+      <label for="date_from">Data Início:</label>
+      <input id="date_from" type="date" formControlName="date_from" />
+    </div>
+
+    <div class="form-group">
+      <label for="date_to">Data Fim (Opcional):</label>
+      <input id="date_to" type="date" formControlName="date_to" />
+    </div>
+
+    <div class="form-group">
+      <label for="currency">Moeda:</label>
+      <select id="currency" formControlName="currency">
+        <option value="EUR">EUR (€)</option>
+        <option value="GBP">GBP (£)</option>
+        <option value="USD">USD ($)</option>
+      </select>
+    </div>
+
+    <button type="submit" [disabled]="searchForm.invalid || loading">
+      {{ loading ? 'A pesquisar...' : 'Pesquisar Voos' }}
+    </button>
+  </form>
+
+  <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
+</div>
