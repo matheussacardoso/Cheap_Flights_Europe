@@ -1,0 +1,36 @@
+[project]
+name = "cheap-flights-backend"
+version = "1.1.0"
+description = "FastAPI service to query flight deals via ryanair-py"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.162.0",
+    "uvicorn[standard]==0.54.0",
+    "pydantic==2.14.1",
+    "pydantic-settings==2.16.2",
+    "ryanair-py==3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "httpx2==2.16.0",
+    "ruff==0.17.4",
+]
+# Linux/Docker production server: gunicorn managing uvicorn workers (uvloop comes with uvicorn[standard]).
+prod = [
+    "gunicorn==27.0.0",
+    "uvicorn-worker==0.4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
