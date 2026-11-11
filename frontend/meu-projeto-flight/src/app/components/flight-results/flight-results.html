@@ -1,0 +1,30 @@
+<div class="container">
+  <h2>Voos Encontrados</h2>
+
+  <button routerLink="/" class="btn-back">← Nova Pesquisa</button>
+
+  <div *ngIf="flights.length === 0" class="no-results">
+    Nenhum voo encontrado ou a sessão expirou.
+  </div>
+
+  <table *ngIf="flights.length > 0">
+    <thead>
+      <tr>
+        <th>Voo</th>
+        <th>Origem</th>
+        <th>Destino</th>
+        <th>Partida</th>
+        <th>Preço</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let flight of flights">
+        <td>{{ flight.flightNumber }}</td>
+        <td>{{ flight.origin }}</td>
+        <td>{{ flight.destination }}</td>
+        <td>{{ flight.departureTime | date:'dd/MM/yyyy HH:mm' }}</td>
+        <td><strong>{{ flight.price }} {{ flight.currency }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
