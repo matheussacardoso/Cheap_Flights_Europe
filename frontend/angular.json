@@ -6,7 +6,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "meu-projeto-flight": {
+    "cheap-flights-frontend": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -56,10 +56,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "meu-projeto-flight:build:production"
+              "buildTarget": "cheap-flights-frontend:build:production"
             },
             "development": {
-              "buildTarget": "meu-projeto-flight:build:development"
+              "buildTarget": "cheap-flights-frontend:build:development"
             }
           },
           "defaultConfiguration": "development"
