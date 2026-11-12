@@ -1,29 +1,62 @@
-<div class="container">
-  <h2>Pesquisa de Voos Baratos - Ryanair</h2>
+<main class="container">
+  <h1>Find cheap Ryanair flights</h1>
 
-  <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="form-grid">
+  <p class="form-hint">Fields marked * are required.</p>
+
+  <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="form-grid" novalidate>
     <div class="form-group">
-      <label for="origin">Origem (IATA):</label>
-      <input id="origin" type="text" formControlName="origin" placeholder="Ex: LIS" />
+      <label for="origin">Origin (IATA) *</label>
+      <input
+        id="origin"
+        type="text"
+        formControlName="origin"
+        placeholder="e.g. LIS"
+        required
+        [attr.aria-invalid]="showError('origin')"
+        [attr.aria-describedby]="showError('origin') ? 'origin-error' : null"
+      />
+      @if (showError('origin')) {
+        <p id="origin-error" class="field-error">{{ errorFor('origin') }}</p>
+      }
     </div>
 
     <div class="form-group">
-      <label for="destination">Destino (IATA - Opcional):</label>
-      <input id="destination" type="text" formControlName="destination" placeholder="Ex: CRL" />
+      <label for="destination">Destination (IATA)</label>
+      <input
+        id="destination"
+        type="text"
+        formControlName="destination"
+        placeholder="e.g. CRL"
+        [attr.aria-invalid]="showError('destination')"
+        [attr.aria-describedby]="showError('destination') ? 'destination-error' : null"
+      />
+      @if (showError('destination')) {
+        <p id="destination-error" class="field-error">{{ errorFor('destination') }}</p>
+      }
     </div>
 
     <div class="form-group">
-      <label for="date_from">Data Início:</label>
-      <input id="date_from" type="date" formControlName="date_from" />
+      <label for="date_from">Departure from *</label>
+      <input
+        id="date_from"
+        type="date"
+        formControlName="date_from"
+        required
+        [attr.aria-invalid]="showError('date_from')"
+        [attr.aria-describedby]="showError('date_from') ? 'date_from-error' : null"
+      />
+      @if (showError('date_from')) {
+        <p id="date_from-error" class="field-error">{{ errorFor('date_from') }}</p>
+      }
     </div>
 
     <div class="form-group">
-      <label for="date_to">Data Fim (Opcional):</label>
+      <label for="date_to">Departure until</label>
       <input id="date_to" type="date" formControlName="date_to" />
     </div>
 
     <div class="form-group">
-      <label for="currency">Moeda:</label>
+      <label for="currency">Currency</label>
       <select id="currency" formControlName="currency">
         <option value="EUR">EUR (€)</option>
         <option value="GBP">GBP (£)</option>
@@ -31,10 +64,17 @@
       </select>
     </div>
 
-    <button type="submit" [disabled]="searchForm.invalid || loading">
-      {{ loading ? 'A pesquisar...' : 'Pesquisar Voos' }}
+    <button
+      type="submit"
+      class="btn btn-primary"
+      [disabled]="loading()"
+      [attr.aria-busy]="loading()"
+    >
+      {{ loading() ? 'Searching…' : 'Search flights' }}
     </button>
   </form>
 
-  <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
-</div>
+  @if (errorMessage()) {
+    <p class="error" role="alert">{{ errorMessage() }}</p>
+  }
+</main>

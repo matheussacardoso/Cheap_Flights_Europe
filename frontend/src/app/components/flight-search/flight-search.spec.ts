@@ -22,4 +22,14 @@ describe('FlightSearchComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('shows field errors when submitting an empty form', async () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    compiled.querySelector('form')!.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(compiled.querySelector('#origin-error')?.textContent).toContain('origin airport');
+    expect(compiled.querySelector('#date_from-error')?.textContent).toContain('departure date');
+    expect(compiled.querySelector('#origin')?.getAttribute('aria-invalid')).toBe('true');
+  });
 });

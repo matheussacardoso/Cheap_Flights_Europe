@@ -1,52 +1,72 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router'; // <-- 1. Importe o Router
+import { Router } from '@angular/router';
 import { FlightService } from '../../services/flight';
+
+const IATA_ERROR = 'Use a 3-letter IATA airport code.';
 
 @Component({
   selector: 'app-flight-search',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './flight-search.html',
-  styleUrl: './flight-search.css'
+  styleUrl: './flight-search.css',
 })
 export class FlightSearchComponent {
   searchForm: FormGroup;
-  loading = false;
-  errorMessage = '';
+  // Signals, because the app is zoneless: plain fields set in async callbacks would not re-render.
+  loading = signal(false);
+  errorMessage = signal('');
 
   constructor(
     private fb: FormBuilder,
     private flightService: FlightService,
-    private router: Router // <-- 2. Injete o Router no construtor
+    private router: Router,
   ) {
     this.searchForm = this.fb.group({
       origin: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(3)]],
       destination: ['', [Validators.minLength(3), Validators.maxLength(3)]],
       date_from: ['', Validators.required],
       date_to: [''],
-      currency: ['EUR']
+      currency: ['EUR'],
     });
+  }
+
+  showError(name: string): boolean {
+    const control = this.searchForm.get(name);
+    return !!control && control.invalid && control.touched;
+  }
+
+  errorFor(name: string): string {
+    const errors = this.searchForm.get(name)?.errors;
+    if (!errors) {
+      return '';
+    }
+    if (errors['required']) {
+      return name === 'date_from' ? 'Choose a departure date.' : 'Enter an origin airport code.';
+    }
+    return IATA_ERROR;
   }
 
   onSearch(): void {
     if (this.searchForm.invalid) {
+      // Reveal the field errors instead of silently disabling the button.
+      this.searchForm.markAllAsTouched();
       return;
     }
 
-    this.loading = true;
-    this.errorMessage = '';
+    this.loading.set(true);
+    this.errorMessage.set('');
 
     this.flightService.searchFlights(this.searchForm.value).subscribe({
       next: () => {
-        this.loading = false;
-        this.router.navigate(['/results']); // <-- 3. Redireciona para a página de resultados
+        this.loading.set(false);
+        this.router.navigate(['/results']);
       },
-      error: (err) => {
-        this.errorMessage = 'Erro ao buscar voos. Verifique se o back-end está ativo.';
-        this.loading = false;
-      }
+      error: () => {
+        this.errorMessage.set('Could not load flights. Check that the backend is running.');
+        this.loading.set(false);
+      },
     });
   }
 }
