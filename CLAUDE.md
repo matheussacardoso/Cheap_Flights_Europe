@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Finds cheap, direct, low-cost flights in Europe for long-weekend trips. The root `README.md` describes the product vision: multi-airline search, Thu–Mon and Fri–Tue presets, time windows and price caps. **None of that is built yet.** Today the app only searches Ryanair's cheapest flights through `ryanair-py`.
 
 - `backend/`: FastAPI service (Python ≥ 3.12)
-- `frontend/meu-projeto-flight/`: Angular 22 single-page app (standalone components, zoneless, Vitest)
+- `frontend/`: Angular 22 single-page app (standalone components, zoneless, Vitest)
 
 ## Commands
 
@@ -25,7 +25,7 @@ gunicorn app.main:app -c gunicorn.conf.py     # production (Linux/Docker only, n
 
 `requirements*.txt` are the pinned lock files. When you add a dependency, update `pyproject.toml` too.
 
-### Frontend (run from `frontend/meu-projeto-flight/`)
+### Frontend (run from `frontend/`)
 
 ```bash
 npm install
