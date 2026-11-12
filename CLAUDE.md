@@ -46,7 +46,7 @@ npx prettier --write src                      # formatting (.prettierrc)
 - `app/core/`: cross-cutting code. `config.py` holds `Settings`, `logging.py` + `middleware.py` handle structured logs with a per-request `request_id`, and `exceptions.py` holds domain exceptions plus the handlers that map them to HTTP responses.
 - Routes stay thin. They don't catch exceptions or talk to SDKs directly. Services raise domain exceptions, and the handlers in `core/exceptions.py` turn them into HTTP responses.
 
-### Backend rules (from `Best_Practices_FastAPI.txt`; apply to all backend code)
+### Backend rules (apply to all backend code)
 
 **Concurrency**
 - Never call blocking code (`requests`, `time.sleep`, sync file or DB I/O) inside `async def`. Code that calls it must be a plain `def`, which FastAPI runs in a threadpool.
