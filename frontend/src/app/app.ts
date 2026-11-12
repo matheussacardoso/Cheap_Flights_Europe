@@ -9,5 +9,5 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.css'
 })
 export class App {
-  title = 'meu-projeto-flight';
+  title = 'cheap-flights-frontend';
 }

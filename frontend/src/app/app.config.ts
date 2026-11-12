@@ -5,7 +5,7 @@ import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZonelessChangeDetection(), // <-- Modo zoneless ativado
+    provideZonelessChangeDetection(),
     provideRouter(routes),
     provideHttpClient()
   ]

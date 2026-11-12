@@ -1,22 +1,19 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FlightService, FlightResponse } from '../../services/flight';
 
 @Component({
   selector: 'app-flight-results',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [DatePipe, RouterLink],
   templateUrl: './flight-results.html',
-  styleUrl: './flight-results.css'
+  styleUrl: './flight-results.css',
 })
 export class FlightResultsComponent implements OnInit {
   flights: FlightResponse[] = [];
 
-  constructor(
-    private flightService: FlightService,
-    private router: Router
-  ) {}
+  constructor(private flightService: FlightService) {}
 
   ngOnInit(): void {
     this.flights = this.flightService.searchResults;

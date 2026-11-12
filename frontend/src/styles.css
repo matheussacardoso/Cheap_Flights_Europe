@@ -1,0 +1,168 @@
+/* Design tokens: the single source for spacing, sizing, color and shape. */
+:root {
+  /* Spacing: 8pt scale, with 4px steps for fine-tuning */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Sizing */
+  --control-height: 40px;
+  --content-max-width: 800px;
+
+  /* Typography */
+  --font-family: Arial, Helvetica, sans-serif;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 24px;
+
+  /* Color (text colors meet WCAG AA 4.5:1 on white; borders meet 3:1) */
+  --color-text: #1f1f1f;
+  --color-text-muted: #595959;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f4f4f4;
+  --color-border: #767676;
+  --color-border-subtle: #dddddd;
+  --color-primary: #073590;
+  --color-secondary: #5a6268;
+  --color-on-color: #ffffff;
+  --color-disabled: #a0a0a0;
+  --color-danger: #b52b27;
+  --color-focus: #073590;
+
+  /* Shape */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --shadow-card: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Base */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 var(--space-4);
+  font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+}
+
+h1 {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-lg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Layout */
+.container {
+  max-width: var(--content-max-width);
+  margin: var(--space-8) auto;
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  background-color: var(--color-surface);
+}
+
+/* Form controls: equivalent controls share one height */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+label {
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+}
+
+input,
+select,
+.btn {
+  height: var(--control-height);
+  font: inherit;
+  border-radius: var(--radius-sm);
+}
+
+input,
+select {
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.field-error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}
+
+/* Buttons (also used on links that look like buttons) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  border: none;
+  font-weight: bold;
+  color: var(--color-on-color);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary);
+}
+
+.btn:disabled {
+  background-color: var(--color-disabled);
+  cursor: not-allowed;
+}
+
+/* Feedback */
+.error {
+  margin: 0;
+  font-weight: bold;
+  color: var(--color-danger);
+}
+
+.muted {
+  margin: 0;
+  font-weight: bold;
+  color: var(--color-text-muted);
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  text-align: left;
+}
+
+th {
+  background-color: var(--color-surface-muted);
+}

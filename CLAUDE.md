@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Finds cheap, direct, low-cost flights in Europe for long-weekend trips. The root `README.md` describes the product vision: multi-airline search, Thu–Mon and Fri–Tue presets, time windows and price caps. **None of that is built yet.** Today the app only searches Ryanair's cheapest flights through `ryanair-py`.
 
 - `backend/`: FastAPI service (Python ≥ 3.12)
-- `frontend/meu-projeto-flight/`: Angular 22 single-page app (standalone components, zoneless, Vitest)
+- `frontend/`: Angular 22 single-page app (standalone components, zoneless, Vitest)
 
 ## Commands
 
@@ -25,7 +25,7 @@ gunicorn app.main:app -c gunicorn.conf.py     # production (Linux/Docker only, n
 
 `requirements*.txt` are the pinned lock files. When you add a dependency, update `pyproject.toml` too.
 
-### Frontend (run from `frontend/meu-projeto-flight/`)
+### Frontend (run from `frontend/`)
 
 ```bash
 npm install
@@ -82,7 +82,17 @@ npx prettier --write src                      # formatting (.prettierrc)
 - Angular standalone components (no NgModules). Each feature is a component folder in `src/app/components/`, HTTP calls live in services in `src/app/services/`, and routes are registered in `app.routes.ts`.
 - The app is **zoneless** (`provideZonelessChangeDetection()`), so UI updates must come from signals or template events, not zone.js-triggered change detection.
 - Data passed between pages currently lives in memory on the services, so it is lost when the page reloads.
-- Some comments and user-facing strings are in Portuguese.
+- The app is in English: all user-facing text, code comments and `<html lang="en">`.
+
+### UI/UX design system (apply to all frontend styling)
+
+- **Spacing:** use an 8pt scale (8, 16, 24, 32, …), with 4px steps allowed only for fine-tuning. Don't introduce arbitrary values without a stated reason.
+- **Tokens:** all spacing, sizing, color, radius and shadow values come from the CSS custom properties in `src/styles.css` (`--space-*`, `--control-height`, `--color-*`, …). Never hardcode raw values in component CSS. Shared styles (`.container`, `.btn`, form controls, tables) also live in `src/styles.css`. Component CSS only holds layout specific to that component.
+- **Component sizing:** equivalent components (buttons, inputs, selects) share the same height.
+- **Hierarchy through proximity:** use smaller spacing inside a group and larger spacing between groups.
+- **Consistency:** the same patterns, spacing and sizes apply across all screens.
+- **Accessibility:** respect accessibility requirements (semantic HTML, labels on form controls, visible focus states, sufficient color contrast, keyboard navigation).
+- **Stability:** don't change the design system (tokens, scales, shared styles) unless the task requires it.
 
 ### Tests
 
