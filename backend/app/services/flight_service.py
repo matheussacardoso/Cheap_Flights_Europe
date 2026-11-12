@@ -21,6 +21,9 @@ class FlightService:
         }
         if params.destination:
             kwargs["destination_airport"] = params.destination
+        if params.destination_country:
+            # Ryanair's fare API only matches lowercase country codes ("es", not "ES").
+            kwargs["destination_country"] = params.destination_country.lower()
 
         try:
             flights = Ryanair(currency=params.currency).get_cheapest_flights(**kwargs)

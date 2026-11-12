@@ -4,6 +4,7 @@ from typing import Annotated, Self
 from pydantic import Field, StringConstraints, model_validator
 
 from app.schemas.base import AppBaseModel, CamelModel
+from app.schemas.network import CountryCode
 
 IataCode = Annotated[
     str,
@@ -21,13 +22,18 @@ class FlightSearchParams(AppBaseModel):
     origin: IataCode = Field(description="3-letter IATA code (e.g., LIS)")
     date_from: date = Field(description="Start date for search (YYYY-MM-DD)")
     destination: IataCode | None = Field(default=None, description="3-letter IATA code (e.g., CRL)")
+    destination_country: CountryCode | None = Field(
+        default=None, description="2-letter ISO country code: any airport in it (e.g., ES)"
+    )
     date_to: date | None = Field(default=None, description="End date for search (YYYY-MM-DD)")
     currency: CurrencyCode = Field(default="EUR", description="Currency code (e.g., EUR, GBP, USD)")
 
     @model_validator(mode="after")
-    def check_date_range(self) -> Self:
+    def check_consistency(self) -> Self:
         if self.date_to is not None and self.date_to < self.date_from:
             raise ValueError("date_to must be on or after date_from")
+        if self.destination and self.destination_country:
+            raise ValueError("Send either destination or destination_country, not both")
         return self
 
 

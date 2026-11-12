@@ -139,3 +139,31 @@ def test_service_dependency_can_be_overridden(client: TestClient, override_servi
     assert response.status_code == 200
     assert response.json() == []
     fake.get_cheapest_flights.assert_called_once()
+
+
+def test_destination_country_is_forwarded_lowercase(
+    client: TestClient, ryanair_mock: MagicMock
+) -> None:
+    """Ryanair's fare API only matches lowercase country codes."""
+    ryanair_mock.return_value.get_cheapest_flights.return_value = []
+
+    response = client.get(
+        URL, params={"origin": "LIS", "date_from": "2026-10-30", "destination_country": "ES"}
+    )
+
+    assert response.status_code == 200
+    kwargs = ryanair_mock.return_value.get_cheapest_flights.call_args.kwargs
+    assert kwargs["destination_country"] == "es"
+    assert "destination_airport" not in kwargs
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"destination": "AGP", "destination_country": "ES"},
+        {"destination_country": "ESP"},
+    ],
+)
+def test_invalid_destination_country_returns_422(client: TestClient, extra: dict) -> None:
+    params = {"origin": "LIS", "date_from": "2026-10-30"} | extra
+    assert client.get(URL, params=params).status_code == 422
