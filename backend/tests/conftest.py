@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.dependencies import get_flight_service
+from app.api.dependencies import get_flight_service, get_network_service
 from app.main import app
 
 
@@ -29,5 +29,15 @@ def override_service():
 
     def _override(fake) -> None:
         app.dependency_overrides[get_flight_service] = lambda: fake
+
+    return _override
+
+
+@pytest.fixture
+def override_network():
+    """Swap the NetworkService dependency for a fake one."""
+
+    def _override(fake) -> None:
+        app.dependency_overrides[get_network_service] = lambda: fake
 
     return _override
