@@ -1,0 +1,47 @@
+@if (saved.routes().length) {
+  <section class="saved-routes" aria-labelledby="saved-routes-title">
+    <h2 id="saved-routes-title" class="section-title">Saved routes</h2>
+    <ul class="route-list">
+      @for (route of saved.routes(); track route.id) {
+        <li class="route" [class.is-current]="saved.current()?.id === route.id">
+          <button
+            type="button"
+            class="route-button"
+            [attr.aria-label]="name(route)"
+            [attr.aria-pressed]="saved.current()?.id === route.id"
+            [attr.aria-disabled]="!trip.airports().length || null"
+            (click)="use(route)"
+          >
+            <img
+              class="flag"
+              [src]="'flags/' + route.originCountry.toLowerCase() + '.svg'"
+              alt=""
+              width="24"
+              height="16"
+            />
+            <span>{{ route.originName }}</span>
+            <span class="arrow" aria-hidden="true">→</span>
+            <img
+              class="flag"
+              [src]="'flags/' + route.destinationCountry.toLowerCase() + '.svg'"
+              alt=""
+              width="24"
+              height="16"
+            />
+            <span>{{ route.destinationName }}</span>
+          </button>
+          <button
+            type="button"
+            class="remove-button"
+            [attr.aria-label]="'Remove ' + name(route)"
+            title="Remove"
+            (click)="remove(route)"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+}
+<p class="visually-hidden" aria-live="polite">{{ message() }}</p>

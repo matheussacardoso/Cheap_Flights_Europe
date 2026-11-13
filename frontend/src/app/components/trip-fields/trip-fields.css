@@ -1,0 +1,60 @@
+/* Stacked (sidebar): From, then the swap button aligned right, then To. */
+:host {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+}
+
+.swap {
+  justify-self: end;
+  width: var(--control-height);
+  height: var(--control-height);
+  margin: calc(-1 * var(--space-2)) 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-round);
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+
+.swap:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.swap:disabled {
+  color: var(--color-disabled);
+  cursor: not-allowed;
+}
+
+/* Row (search form): From ⇄ To side by side, swap aligned with the boxes, not their labels. */
+:host(.is-row) {
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: var(--space-4);
+}
+
+:host(.is-row) .swap {
+  /* Lines up with the boxes, below their label (one label line + the label gap). */
+  margin: calc(var(--font-size-sm) * var(--line-height-label) + var(--space-1)) 0 0;
+}
+
+:host(.is-row) .swap span {
+  display: inline-block;
+  transform: rotate(90deg);
+}
+
+@media (max-width: 768px) {
+  :host(.is-row) {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  :host(.is-row) .swap {
+    margin: calc(-1 * var(--space-2)) 0;
+  }
+
+  :host(.is-row) .swap span {
+    transform: none;
+  }
+}

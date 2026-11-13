@@ -1,14 +1,17 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { FlightService } from '../../services/flight';
-import { TripSearchSelection } from '../../services/trip-selection';
-import { TripPickerComponent } from '../trip-picker/trip-picker';
+import { SavedRoutes } from '../../services/saved-routes';
+import { syncTripWithUrl } from '../../services/trip-url';
+import { TripSelection } from '../../services/trip-selection';
+import { SavedRoutesComponent } from '../saved-routes/saved-routes';
+import { TripFieldsComponent } from '../trip-fields/trip-fields';
 
 @Component({
   selector: 'app-flight-search',
   standalone: true,
-  imports: [ReactiveFormsModule, TripPickerComponent],
+  imports: [ReactiveFormsModule, SavedRoutesComponent, TripFieldsComponent],
   templateUrl: './flight-search.html',
   styleUrl: './flight-search.css',
 })
@@ -16,21 +19,17 @@ export class FlightSearchComponent {
   private fb = inject(FormBuilder);
   private flightService = inject(FlightService);
   private router = inject(Router);
+  readonly trip = inject(TripSelection);
+  readonly savedRoutes = inject(SavedRoutes);
 
   // Signals, because the app is zoneless: plain fields set in async callbacks would not re-render.
   loading = signal(false);
   errorMessage = signal('');
   private submitted = signal(false);
-  private trip = signal<TripSearchSelection | null>(null);
 
-  /** A trip needs an origin airport and either a destination airport or "any" in a country. */
-  readonly tripComplete = computed(() => {
-    const trip = this.trip();
-    return !!trip?.origin && (!!trip.destination || !!trip.destinationCountry);
-  });
-  readonly showTripError = computed(() => this.submitted() && !this.tripComplete());
+  readonly showTripError = computed(() => this.submitted() && !this.trip.isComplete());
 
-  // origin/destination/destination_country have no inputs: the trip picker fills them.
+  // origin/destination/destination_country have no inputs: they follow the trip store.
   searchForm = this.fb.group({
     origin: ['', Validators.required],
     destination: [''],
@@ -40,12 +39,16 @@ export class FlightSearchComponent {
     currency: ['EUR'],
   });
 
-  onTripChange(selection: TripSearchSelection): void {
-    this.trip.set(selection);
-    this.searchForm.patchValue({
-      origin: selection.origin ?? '',
-      destination: selection.destination ?? '',
-      destination_country: selection.destinationCountry ?? '',
+  constructor() {
+    this.trip.loadAirports();
+    syncTripWithUrl();
+    effect(() => {
+      const selection = this.trip.searchSelection();
+      this.searchForm.patchValue({
+        origin: selection.origin ?? '',
+        destination: selection.destination ?? '',
+        destination_country: selection.destinationCountry ?? '',
+      });
     });
   }
 
@@ -62,7 +65,7 @@ export class FlightSearchComponent {
 
   onSearch(): void {
     this.submitted.set(true);
-    if (this.searchForm.invalid || !this.tripComplete()) {
+    if (this.searchForm.invalid || !this.trip.isComplete()) {
       // Reveal the errors instead of silently disabling the button.
       this.searchForm.markAllAsTouched();
       return;
@@ -85,7 +88,7 @@ export class FlightSearchComponent {
       .subscribe({
         next: () => {
           this.loading.set(false);
-          this.router.navigate(['/results']);
+          this.router.navigate(['/search/results']);
         },
         error: () => {
           this.errorMessage.set('Could not load flights. Check that the backend is running.');

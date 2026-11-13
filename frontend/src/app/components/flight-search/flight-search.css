@@ -5,15 +5,40 @@ form {
   margin-bottom: var(--space-6);
 }
 
+.save-route {
+  align-self: flex-start;
+  gap: var(--space-2);
+}
+
 .trip-field {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.saved {
+  display: block;
+  margin-bottom: var(--space-6);
+}
+
+/* The saved-routes component renders nothing visible without routes. */
+.saved:not(:has(.saved-routes)) {
+  margin-bottom: 0;
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-2);
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--field-min-width), 1fr));
   gap: var(--space-4);
 }
 

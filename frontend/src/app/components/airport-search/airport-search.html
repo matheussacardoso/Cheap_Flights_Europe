@@ -1,0 +1,76 @@
+<label class="label" [for]="id">{{ label() }}</label>
+<div class="field" [class.is-disabled]="disabled()">
+  @if (value() && !editing()) {
+    <img
+      class="flag"
+      [src]="'flags/' + value()!.countryCode.toLowerCase() + '.svg'"
+      alt=""
+      width="24"
+      height="16"
+    />
+  }
+  <input
+    #box
+    [id]="id"
+    type="text"
+    role="combobox"
+    autocomplete="off"
+    spellcheck="false"
+    aria-autocomplete="list"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="id + '-list'"
+    [attr.aria-activedescendant]="activeId()"
+    [attr.aria-describedby]="hint() ? id + '-hint' : null"
+    [placeholder]="placeholder()"
+    [disabled]="disabled()"
+    [value]="text()"
+    (focus)="onFocus(box)"
+    (input)="onInput(box.value)"
+    (blur)="onBlur()"
+    (keydown)="onKeydown($event)"
+  />
+  @if (value() && !disabled()) {
+    <button
+      type="button"
+      class="clear"
+      [attr.aria-label]="'Clear ' + label()"
+      title="Clear"
+      (click)="clear(box)"
+    >
+      <span aria-hidden="true">×</span>
+    </button>
+  }
+</div>
+@if (hint()) {
+  <p class="hint" [id]="id + '-hint'">{{ hint() }}</p>
+}
+
+<ul class="list" role="listbox" [id]="id + '-list'" [attr.aria-label]="label()" [hidden]="!open()">
+  @for (option of results(); track option.kind + option.code; let i = $index) {
+    <li
+      role="option"
+      class="option"
+      [id]="optionId(i)"
+      [class.is-active]="i === active()"
+      [attr.aria-selected]="i === active()"
+      (mousedown)="$event.preventDefault()"
+      (click)="choose(option)"
+      (mousemove)="active.set(i)"
+    >
+      <img
+        class="flag"
+        [src]="'flags/' + option.countryCode.toLowerCase() + '.svg'"
+        alt=""
+        width="24"
+        height="16"
+      />
+      <span class="text">
+        <span class="title">{{ option.title }}</span>
+        <span class="subtitle">{{ option.subtitle }}</span>
+      </span>
+    </li>
+  } @empty {
+    <li class="empty">No matching airports</li>
+  }
+</ul>
+<p class="visually-hidden" aria-live="polite">{{ status() }}</p>

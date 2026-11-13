@@ -1,15 +1,34 @@
 <main class="container">
-  <h1>Find cheap Ryanair flights</h1>
+  <h1>Search flight prices</h1>
+
+  <app-saved-routes class="saved" />
 
   <p class="form-hint">Fields marked * are required.</p>
 
   <form [formGroup]="searchForm" (ngSubmit)="onSearch()" novalidate>
-    <div class="trip-field">
-      <app-trip-picker (selectionChange)="onTripChange($event)" />
-      @if (showTripError()) {
-        <p class="field-error" role="alert">Choose your departure and arrival airports.</p>
+    <fieldset class="trip-field">
+      <legend class="visually-hidden">Route *</legend>
+      <app-trip-fields layout="row" />
+      @if (trip.error()) {
+        <div class="status" role="alert">
+          <p class="error">{{ trip.error() }}</p>
+          <button type="button" class="btn btn-secondary" (click)="trip.retry()">Try again</button>
+        </div>
       }
-    </div>
+      @if (showTripError()) {
+        <p class="field-error" role="alert">Choose where you fly from and to.</p>
+      }
+      @if (savedRoutes.current(); as route) {
+        <button
+          type="button"
+          class="btn btn-secondary save-route"
+          (click)="savedRoutes.toggleCurrent()"
+        >
+          <span aria-hidden="true">{{ savedRoutes.isCurrentSaved() ? '★' : '☆' }}</span>
+          {{ savedRoutes.isCurrentSaved() ? 'Saved route' : 'Save route' }}
+        </button>
+      }
+    </fieldset>
 
     <div class="form-grid">
       <div class="form-group">

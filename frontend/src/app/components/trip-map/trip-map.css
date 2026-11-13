@@ -1,0 +1,207 @@
+/* The map fills whatever box its parent gives it. */
+:host {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-map-sea);
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+svg:active {
+  cursor: grabbing;
+}
+
+.sea {
+  fill: var(--color-map-sea);
+}
+
+/* Countries: borders stay 1px on screen at any zoom. */
+.country {
+  stroke: var(--color-map-border);
+  stroke-width: var(--map-stroke);
+  vector-effect: non-scaling-stroke;
+}
+
+.country.is-outside {
+  fill: var(--color-map-land-muted);
+}
+
+.country.is-served {
+  fill: var(--color-map-land);
+}
+
+.country.is-destination {
+  fill: var(--color-primary-subtle);
+  stroke: var(--color-primary);
+}
+
+/* Labels: a halo in the surface color keeps them readable over borders and lines. */
+.label,
+.airport-name {
+  stroke: var(--color-surface);
+  paint-order: stroke;
+  pointer-events: none;
+}
+
+/* Country names are centred and recede; airport names are anchored beside their dot. */
+.label {
+  fill: var(--color-text-muted);
+  text-anchor: middle;
+  text-transform: uppercase;
+}
+
+.airport-name {
+  fill: var(--color-text);
+  font-weight: bold;
+}
+
+/* Flights: thin possible flights; the chosen one is bold and the rest fade. */
+.flight {
+  fill: none;
+  stroke: var(--color-map-route);
+  stroke-width: var(--map-stroke);
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.flights.has-chosen .flight {
+  opacity: var(--map-faded-opacity);
+}
+
+.flights.has-chosen .flight.is-chosen {
+  stroke: var(--color-primary);
+  stroke-width: var(--map-stroke-bold);
+  opacity: 1;
+}
+
+.arrow {
+  fill: var(--color-primary);
+}
+
+/* Airports */
+.airport circle {
+  stroke: var(--color-surface);
+  stroke-width: var(--map-stroke-dot);
+  vector-effect: non-scaling-stroke;
+}
+
+.airport.is-available circle {
+  fill: var(--color-map-airport);
+}
+
+.airport.is-origin circle,
+.airport.is-destination circle {
+  fill: var(--color-primary);
+  stroke-width: var(--map-stroke-bold);
+}
+
+.airport.is-unavailable circle {
+  fill: var(--color-disabled);
+}
+
+.airport[role='button'] {
+  cursor: pointer;
+}
+
+.airport[role='button']:hover circle,
+.airport[role='button']:focus-visible circle {
+  fill: var(--color-primary);
+  stroke: var(--color-focus);
+  stroke-width: var(--map-stroke-bold);
+}
+
+/* Overlays */
+.controls {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.control {
+  width: var(--control-height);
+  height: var(--control-height);
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+}
+
+.control + .control {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.control:hover:not(:disabled) {
+  background-color: var(--color-primary-subtle);
+}
+
+.control:disabled {
+  color: var(--color-disabled);
+  cursor: default;
+}
+
+.legend {
+  position: absolute;
+  bottom: var(--space-4);
+  left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  list-style: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dot {
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-round);
+}
+
+.dot.is-origin {
+  background-color: var(--color-primary);
+}
+
+.dot.is-available {
+  background-color: var(--color-map-airport);
+}
+
+.dot.is-unavailable {
+  background-color: var(--color-disabled);
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-6);
+}
