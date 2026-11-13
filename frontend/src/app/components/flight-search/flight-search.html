@@ -5,71 +5,173 @@
 
   <p class="form-hint">Fields marked * are required.</p>
 
-  <form [formGroup]="searchForm" (ngSubmit)="onSearch()" novalidate>
-    <fieldset class="trip-field">
-      <legend class="visually-hidden">Route *</legend>
-      <app-trip-fields layout="row" />
-      @if (trip.error()) {
-        <div class="status" role="alert">
-          <p class="error">{{ trip.error() }}</p>
-          <button type="button" class="btn btn-secondary" (click)="trip.retry()">Try again</button>
-        </div>
-      }
-      @if (showTripError()) {
-        <p class="field-error" role="alert">Choose where you fly from and to.</p>
-      }
-      @if (savedRoutes.current(); as route) {
-        <button
-          type="button"
-          class="btn btn-secondary save-route"
-          (click)="savedRoutes.toggleCurrent()"
-        >
-          <span aria-hidden="true">{{ savedRoutes.isCurrentSaved() ? '★' : '☆' }}</span>
-          {{ savedRoutes.isCurrentSaved() ? 'Saved route' : 'Save route' }}
-        </button>
-      }
-    </fieldset>
-
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="date_from">Departure from *</label>
-        <input
-          id="date_from"
-          type="date"
-          formControlName="date_from"
-          required
-          [attr.aria-invalid]="showError('date_from')"
-          [attr.aria-describedby]="showError('date_from') ? 'date_from-error' : null"
-        />
-        @if (showError('date_from')) {
-          <p id="date_from-error" class="field-error">{{ errorFor('date_from') }}</p>
+  <div class="search-area">
+    @if (loading()) {
+      <div class="overlay">
+        <app-loading-indicator [title]="loadingText().title" [detail]="loadingText().detail" />
+      </div>
+    }
+    <form
+      [formGroup]="searchForm"
+      (ngSubmit)="onSearch()"
+      novalidate
+      [attr.inert]="loading() ? '' : null"
+    >
+      <fieldset class="trip-field">
+        <legend class="visually-hidden">Route *</legend>
+        <app-trip-fields layout="row" />
+        @if (trip.error()) {
+          <div class="status" role="alert">
+            <p class="error">{{ trip.error() }}</p>
+            <button type="button" class="btn btn-secondary" (click)="trip.retry()">
+              Try again
+            </button>
+          </div>
         }
-      </div>
+        @if (showTripError()) {
+          <p class="field-error" role="alert">Choose where you fly from and to.</p>
+        }
+        @if (savedRoutes.current(); as route) {
+          <button
+            type="button"
+            class="btn btn-secondary save-route"
+            (click)="savedRoutes.toggleCurrent()"
+          >
+            <span aria-hidden="true">{{ savedRoutes.isCurrentSaved() ? '★' : '☆' }}</span>
+            {{ savedRoutes.isCurrentSaved() ? 'Saved route' : 'Save route' }}
+          </button>
+        }
+      </fieldset>
 
-      <div class="form-group">
-        <label for="date_to">Departure until</label>
-        <input id="date_to" type="date" formControlName="date_to" />
-      </div>
+      <fieldset class="group">
+        <legend class="group-title">Trip</legend>
+        <div class="segmented">
+          <label class="segment">
+            <input type="radio" formControlName="trip_type" value="round-trip" />
+            <span>Round trip on set days</span>
+          </label>
+          <label class="segment">
+            <input type="radio" formControlName="trip_type" value="one-way" />
+            <span>One way</span>
+          </label>
+        </div>
+      </fieldset>
 
-      <div class="form-group">
-        <label for="currency">Currency</label>
-        <select id="currency" formControlName="currency">
-          <option value="EUR">EUR (€)</option>
-          <option value="GBP">GBP (£)</option>
-          <option value="USD">USD ($)</option>
-        </select>
-      </div>
+      @if (isRoundTrip()) {
+        <fieldset class="group" aria-describedby="period-summary">
+          <legend class="group-title">Days</legend>
+          <div class="presets" role="group" aria-label="Common trips">
+            @for (preset of presets; track $index) {
+              <button
+                type="button"
+                class="preset"
+                [attr.aria-pressed]="isPreset(preset)"
+                (click)="choosePreset(preset)"
+              >
+                {{ presetLabel(preset) }}
+              </button>
+            }
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="depart_day">Leave on</label>
+              <select id="depart_day" formControlName="depart_day">
+                @for (day of weekdays; track day) {
+                  <option [value]="day">{{ weekdayName(day) }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="return_day">Come back on</label>
+              <select id="return_day" formControlName="return_day">
+                @for (day of weekdays; track day) {
+                  <option [value]="day">{{ weekdayName(day) }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <p id="period-summary" class="form-hint summary" aria-live="polite">
+            {{ periodSummary() }}
+          </p>
+        </fieldset>
+      }
 
-      <button
-        type="submit"
-        class="btn btn-primary"
-        [disabled]="loading()"
-        [attr.aria-busy]="loading()"
-      >
-        {{ loading() ? 'Searching…' : 'Search flights' }}
-      </button>
-    </div>
-  </form>
+      <div class="form-grid" [class.is-wide]="isRoundTrip()">
+        @if (isRoundTrip()) {
+          <!-- Only trips on the chosen days can be picked: each option is one whole trip. -->
+          <div class="form-group">
+            <label for="date_from">First departure *</label>
+            <select id="date_from" formControlName="date_from">
+              @for (date of firstDepartures(); track date) {
+                <option [value]="date">
+                  {{ date | date: 'EEE d MMM' }} → {{ returnDate(date) | date: 'EEE d MMM y' }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="date_to">Last departure *</label>
+            <select
+              id="date_to"
+              formControlName="date_to"
+              [attr.aria-invalid]="showError('date_to')"
+              [attr.aria-describedby]="showError('date_to') ? 'date_to-error' : null"
+            >
+              @for (date of lastDepartures(); track date) {
+                <option [value]="date">
+                  {{ date | date: 'EEE d MMM' }} → {{ returnDate(date) | date: 'EEE d MMM y' }}
+                </option>
+              }
+            </select>
+            @if (showError('date_to')) {
+              <p id="date_to-error" class="field-error">{{ errorFor('date_to') }}</p>
+            }
+          </div>
+        } @else {
+          <div class="form-group">
+            <label for="date_from">Departure from *</label>
+            <input
+              id="date_from"
+              type="date"
+              formControlName="date_from"
+              required
+              [attr.aria-invalid]="showError('date_from')"
+              [attr.aria-describedby]="showError('date_from') ? 'date_from-error' : null"
+            />
+            @if (showError('date_from')) {
+              <p id="date_from-error" class="field-error">{{ errorFor('date_from') }}</p>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="date_to">Departure until</label>
+            <input id="date_to" type="date" formControlName="date_to" />
+          </div>
+        }
+
+        <div class="form-group">
+          <label for="currency">Currency</label>
+          <select id="currency" formControlName="currency">
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="USD">USD ($)</option>
+          </select>
+        </div>
+
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="loading()"
+          [attr.aria-busy]="loading()"
+        >
+          {{
+            loading() ? 'Searching…' : isRoundTrip() ? 'Find the cheapest dates' : 'Search flights'
+          }}
+        </button>
+      </div>
+    </form>
+  </div>
 
   @if (errorMessage()) {
     <p class="error" role="alert">{{ errorMessage() }}</p>

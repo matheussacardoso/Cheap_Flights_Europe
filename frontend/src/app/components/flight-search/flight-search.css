@@ -42,12 +42,125 @@ form {
   gap: var(--space-4);
 }
 
+/* Round-trip dates show whole trips: two wider columns. */
+.form-grid.is-wide {
+  grid-template-columns: repeat(auto-fit, minmax(var(--field-min-width-wide), 1fr));
+}
+
 .form-grid .btn {
   grid-column: 1 / -1;
 }
 
-.form-hint {
-  margin: 0 0 var(--space-4);
+/* Groups of related choices (trip type, days): a title, then the choices. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.group-title {
+  margin-bottom: var(--space-2);
+  padding: 0;
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  font-weight: bold;
+}
+
+/* Trip type: two radio buttons that look like one segmented control. */
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  overflow: hidden;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.segment {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--control-height);
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-md);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.segment + .segment {
+  border-left: 1px solid var(--color-primary);
+}
+
+/* The native radio stays in the page for keyboard and screen readers, but invisible. */
+.segment input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segment:has(input:checked) {
+  background-color: var(--color-primary);
+  color: var(--color-on-color);
+}
+
+.segment:has(input:focus-visible) {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: calc(-1 * var(--focus-offset) - var(--focus-width));
+}
+
+/* Day presets: toggle buttons. */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.preset {
+  height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.preset:hover {
+  border-color: var(--color-primary);
+}
+
+.preset[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+.summary {
+  margin: 0;
+}
+
+/* While a search runs, the loading indicator covers the form (which is inert). */
+.search-area {
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: var(--space-8);
+  background-color: var(--color-overlay);
+}
+
+/* Stays in view while the page is scrolled, wherever the user clicked Search. */
+.overlay app-loading-indicator {
+  position: sticky;
+  top: var(--space-8);
 }

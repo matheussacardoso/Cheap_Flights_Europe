@@ -9,7 +9,7 @@
           <button type="button" class="btn btn-secondary" (click)="trip.retry()">Try again</button>
         </div>
       } @else if (trip.loadingAirports()) {
-        <p class="muted" role="status">Loading airports…</p>
+        <app-loading-indicator title="Loading airports…" [compact]="true" />
       }
     </section>
 
@@ -40,7 +40,7 @@
           }
         </h2>
         @if (trip.loadingRoutes()) {
-          <p class="muted" role="status">Loading direct flights…</p>
+          <app-loading-indicator title="Loading direct flights…" [compact]="true" />
         } @else {
           <ul class="destinations">
             @for (airport of trip.destinations(); track airport.code) {

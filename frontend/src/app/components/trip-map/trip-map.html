@@ -4,7 +4,12 @@
     <button type="button" class="btn btn-secondary" (click)="load()">Try again</button>
   </div>
 } @else if (loading()) {
-  <p class="status muted" role="status">Loading map…</p>
+  <div class="status">
+    <app-loading-indicator
+      title="Loading the map"
+      detail="Drawing Ryanair's airports and routes."
+    />
+  </div>
 } @else {
   <!-- Before the SVG in Tab order, so keyboard users reach zoom without passing every dot. -->
   <div class="controls" role="group" aria-label="Map zoom">

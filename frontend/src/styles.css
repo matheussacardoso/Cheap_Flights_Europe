@@ -12,6 +12,8 @@
   --control-height: 40px;
   --content-max-width: 800px;
   --field-min-width: 200px;
+  /* Fields whose options are long, e.g. "Thu 19 Nov → Mon 23 Nov 2026". */
+  --field-min-width-wide: 280px;
   --nav-height: 56px;
   --sidebar-width: 360px;
   /* Phones: the map's height under the sidebar, and the most a sidebar list may take. */
@@ -65,6 +67,12 @@
   --focus-width: 2px;
   --focus-offset: 2px;
   --z-dropdown: 10;
+  --z-overlay: 20;
+
+  /* Loading: a translucent cover over busy content, and the speed of the loading animations */
+  --color-overlay: rgb(255 255 255 / 0.85);
+  --loading-spin-duration: 0.8s;
+  --loading-slide-duration: 1.4s;
 }
 
 /* Base */
@@ -172,6 +180,13 @@ input[aria-invalid='true'] {
   margin: 0;
   font-weight: bold;
   color: var(--color-danger);
+}
+
+/* Small explanatory text under a heading or a group of fields. */
+.form-hint {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .muted {

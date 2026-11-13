@@ -1,0 +1,31 @@
+.btn-back {
+  margin-bottom: var(--space-6);
+}
+
+/* Wide tables scroll inside the card on phones instead of the page. */
+:host table {
+  display: block;
+  overflow-x: auto;
+}
+
+/* "FR 7208 · €44.84" under the time, kept on one line. */
+.detail {
+  display: block;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.is-cheapest td {
+  background-color: var(--color-primary-subtle);
+}
+
+.badge {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
+  color: var(--color-on-color);
+  font-size: var(--font-size-sm);
+}

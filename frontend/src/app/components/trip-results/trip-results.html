@@ -1,0 +1,60 @@
+<main class="container">
+  <h1>Cheapest dates</h1>
+
+  <a routerLink="/search" class="btn btn-secondary btn-back">← New search</a>
+
+  @if (trips.length === 0) {
+    <p class="muted">No round trips found for these days, or your search session expired.</p>
+  } @else {
+    <p class="form-hint">
+      {{ trips.length }} {{ trips.length === 1 ? 'trip' : 'trips' }}, cheapest first. Prices are for
+      one adult, both flights.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Dates</th>
+          <th scope="col">To</th>
+          <th scope="col">Outbound</th>
+          <th scope="col">Return</th>
+          <th scope="col">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (
+          trip of trips;
+          track trip.outbound.departureTime + trip.outbound.destination;
+          let first = $first
+        ) {
+          <tr [class.is-cheapest]="first">
+            <td>
+              <strong>{{ trip.outbound.departureTime | date: 'EEE d MMM' }}</strong>
+              → {{ trip.inbound.departureTime | date: 'EEE d MMM' }}
+            </td>
+            <td>{{ airportName(trip.outbound.destination) }} ({{ trip.outbound.destination }})</td>
+            <td>
+              <strong>{{ trip.outbound.departureTime | date: 'HH:mm' }}</strong>
+              <span class="detail"
+                >{{ trip.outbound.flightNumber }} ·
+                {{ trip.outbound.price | currency: trip.outbound.currency }}</span
+              >
+            </td>
+            <td>
+              <strong>{{ trip.inbound.departureTime | date: 'HH:mm' }}</strong>
+              <span class="detail"
+                >{{ trip.inbound.flightNumber }} ·
+                {{ trip.inbound.price | currency: trip.inbound.currency }}</span
+              >
+            </td>
+            <td>
+              <strong>{{ trip.totalPrice | currency: trip.outbound.currency }}</strong>
+              @if (first) {
+                <span class="badge">Cheapest</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</main>
