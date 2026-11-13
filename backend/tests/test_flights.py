@@ -167,3 +167,19 @@ def test_destination_country_is_forwarded_lowercase(
 def test_invalid_destination_country_returns_422(client: TestClient, extra: dict) -> None:
     params = {"origin": "LIS", "date_from": "2026-10-30"} | extra
     assert client.get(URL, params=params).status_code == 422
+
+
+def test_searches_every_departure_airport_cheapest_first(
+    client: TestClient, ryanair_mock: MagicMock
+) -> None:
+    by_origin = {
+        "CGN": [make_flight(origin="CGN", price=30)],
+        "NRN": [make_flight(origin="NRN", price=10)],
+    }
+    ryanair_mock.return_value.get_cheapest_flights.side_effect = lambda airport, **kwargs: (
+        by_origin[airport]
+    )
+
+    response = client.get(URL, params={"origin": ["CGN", "NRN"], "date_from": "2026-10-30"})
+
+    assert [flight["origin"] for flight in response.json()] == ["NRN", "CGN"]

@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from enum import StrEnum
 from typing import Annotated, Self
 
-from pydantic import Field, StringConstraints, field_validator, model_validator
+from pydantic import AfterValidator, Field, StringConstraints, field_validator, model_validator
 
 from app.schemas.base import AppBaseModel, CamelModel
 from app.schemas.network import CountryCode
@@ -16,11 +16,27 @@ CurrencyCode = Annotated[
     StringConstraints(strip_whitespace=True, to_upper=True, pattern=r"^[A-Za-z]{3}$"),
 ]
 
+# Several departure airports, e.g. Cologne or Weeze for someone living in between.
+MAX_ORIGINS = 3
+
+
+def _unique(codes: list[str]) -> list[str]:
+    return list(dict.fromkeys(codes))
+
+
+Origins = Annotated[
+    list[IataCode],
+    Field(min_length=1, max_length=MAX_ORIGINS),
+    AfterValidator(_unique),
+]
+
 
 class FlightSearchParams(AppBaseModel):
     """Query parameters for the cheapest-flights search."""
 
-    origin: IataCode = Field(description="3-letter IATA code (e.g., LIS)")
+    origin: Origins = Field(
+        description="1 to 3 departure airports; repeat it: origin=CGN&origin=NRN"
+    )
     date_from: date = Field(description="Start date for search (YYYY-MM-DD)")
     destination: IataCode | None = Field(default=None, description="3-letter IATA code (e.g., CRL)")
     destination_country: CountryCode | None = Field(
@@ -72,7 +88,9 @@ MAX_TRIP_PERIOD_DAYS = 92
 class TripSearchParams(AppBaseModel):
     """Query parameters for round trips on fixed weekdays, e.g. Thursday to Monday."""
 
-    origin: IataCode = Field(description="3-letter IATA code (e.g., CGN)")
+    origin: Origins = Field(
+        description="1 to 3 departure airports; repeat it: origin=CGN&origin=NRN"
+    )
     destination: IataCode | None = Field(default=None, description="3-letter IATA code (e.g., PMI)")
     destination_country: CountryCode | None = Field(
         default=None, description="2-letter ISO country code: any airport in it (e.g., ES)"
@@ -113,7 +131,11 @@ class TripSearchParams(AppBaseModel):
 
 
 class TripResponse(CamelModel):
-    """A round trip. Validated directly from ryanair-py `Trip` objects (camelCase attrs)."""
+    """A round trip. Validated directly from ryanair-py `Trip` objects (camelCase attrs).
+
+    With several departure airports the return may land at another of them (open jaw), e.g.
+    out from Cologne and back to Weeze: compare `outbound.origin` and `inbound.destination`.
+    """
 
     total_price: float
     outbound: FlightResponse
