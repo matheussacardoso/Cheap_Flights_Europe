@@ -40,7 +40,20 @@ def make_trip(outbound: date, inbound: date, out_price: float, in_price: float) 
 
 
 def params(**overrides) -> TripSearchParams:
-    return TripSearchParams.model_validate(THU_TO_MON | overrides)
+    return TripSearchParams.model_validate(THU_TO_MON | {"origin": ["CGN"]} | overrides)
+
+
+def one_way(day: date, origin: str, destination: str, price: float) -> Flight:
+    return Flight(
+        departureTime=datetime.combine(day, datetime.min.time()).replace(hour=10),
+        flightNumber="FR 1234",
+        price=price,
+        currency="EUR",
+        origin=origin,
+        originFull=origin,
+        destination=destination,
+        destinationFull=destination,
+    )
 
 
 def test_windows_are_every_departure_day_with_its_return_day() -> None:
@@ -132,3 +145,89 @@ def test_upstream_failure_returns_502(client: TestClient, ryanair_mock: MagicMoc
 
     assert response.status_code == 502
     assert "boom" not in response.text
+
+
+# --- Several departure airports (open jaw) -------------------------------------------------
+
+OUT, BACK = date(2026, 12, 3), date(2026, 12, 7)
+TWO_ORIGINS = THU_TO_MON | {"origin": ["CGN", "NRN"], "date_to": "2026-12-03"}
+
+
+def fake_one_way_fares(fares: dict[tuple[str, date], list[Flight]]):
+    """Stands in for `get_cheapest_flights`: the flights leaving `airport` on that day."""
+
+    def get(airport: str, date_from: date, date_to: date, **kwargs) -> list[Flight]:
+        return fares.get((airport, date_from), [])
+
+    return get
+
+
+def test_origin_can_be_repeated_and_duplicates_are_ignored() -> None:
+    assert params(origin=["cgn", "NRN", "CGN"]).origin == ["CGN", "NRN"]
+
+
+def test_at_most_three_origins(client: TestClient) -> None:
+    four = THU_TO_MON | {"origin": ["CGN", "NRN", "EIN", "CRL"]}
+    assert client.get(URL, params=four).status_code == 422
+
+
+def test_return_can_land_at_another_departure_airport(
+    client: TestClient, ryanair_mock: MagicMock
+) -> None:
+    ryanair_mock.return_value.get_cheapest_flights.side_effect = fake_one_way_fares(
+        {
+            ("CGN", OUT): [one_way(OUT, "CGN", "PMI", 50)],
+            ("NRN", OUT): [one_way(OUT, "NRN", "PMI", 30)],  # cheapest way out
+            # From Palma: cheapest back is to Cologne; Berlin isn't one of the departures.
+            ("PMI", BACK): [
+                one_way(BACK, "PMI", "BER", 5),
+                one_way(BACK, "PMI", "NRN", 40),
+                one_way(BACK, "PMI", "CGN", 20),
+            ],
+        }
+    )
+
+    response = client.get(URL, params=TWO_ORIGINS)
+
+    assert response.status_code == 200
+    [trip] = response.json()
+    assert (trip["outbound"]["origin"], trip["outbound"]["destination"]) == ("NRN", "PMI")
+    assert (trip["inbound"]["origin"], trip["inbound"]["destination"]) == ("PMI", "CGN")
+    assert trip["totalPrice"] == 50
+    # Round-trip fares can't land elsewhere, so they aren't used with several origins.
+    ryanair_mock.return_value.get_cheapest_return_flights.assert_not_called()
+
+
+def test_no_trip_without_a_way_back(client: TestClient, ryanair_mock: MagicMock) -> None:
+    ryanair_mock.return_value.get_cheapest_flights.side_effect = fake_one_way_fares(
+        {("CGN", OUT): [one_way(OUT, "CGN", "PMI", 50)]}
+    )
+
+    assert client.get(URL, params=TWO_ORIGINS).json() == []
+
+
+def test_country_search_pairs_each_destination_airport_with_its_own_return(
+    client: TestClient, ryanair_mock: MagicMock
+) -> None:
+    ryanair_mock.return_value.get_cheapest_flights.side_effect = fake_one_way_fares(
+        {
+            ("CGN", OUT): [one_way(OUT, "CGN", "PMI", 50), one_way(OUT, "CGN", "AGP", 10)],
+            ("NRN", OUT): [one_way(OUT, "NRN", "AGP", 20)],
+            ("PMI", BACK): [one_way(BACK, "PMI", "CGN", 15)],
+            ("AGP", BACK): [one_way(BACK, "AGP", "NRN", 25)],
+        }
+    )
+    country = {k: v for k, v in TWO_ORIGINS.items() if k != "destination"}
+
+    trips = client.get(URL, params=country | {"destination_country": "ES"}).json()
+
+    assert [(t["outbound"]["destination"], t["totalPrice"]) for t in trips] == [
+        ("AGP", 35),  # out CGN 10, back to NRN 25
+        ("PMI", 65),
+    ]
+    outbound_calls = [
+        call
+        for call in ryanair_mock.return_value.get_cheapest_flights.call_args_list
+        if call.kwargs["airport"] in ("CGN", "NRN")
+    ]
+    assert all(call.kwargs["destination_country"] == "es" for call in outbound_calls)

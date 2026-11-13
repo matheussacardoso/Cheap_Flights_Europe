@@ -25,6 +25,8 @@ The general design system (8pt spacing, tokens, accessibility) is in the root `C
 
 A full-screen layout under the nav bar: a sidebar (`--sidebar-width`, 360px) beside the map, which fills the rest. The page itself never scrolls on desktop; the sidebar scrolls on its own.
 
+- **The sidebar is `position: relative`.** Absolutely positioned children (like the visually hidden live regions of the search boxes) are then placed inside it. Without it, they sit below the screen and the whole page scrolls (it grew to 2,670 px once).
+
 The sidebar is split into sections, 24px apart (`--space-6`), with smaller gaps inside each section. From top to bottom:
 
 1. **Title and From/To boxes** (`components/trip-fields/`), with errors and a "Try again" button below.
@@ -71,8 +73,10 @@ A centred card (`.container`). From top to bottom:
 
 Results:
 
+- **After a search the page scrolls to the top**, so the results start at their title, not at the form's scroll position. This is done only there: the router's global scroll reset would also fire on every URL sync of the trip.
 - One way: `/search/results`.
 - Round trip: `/search/trips`, every trip cheapest first. The cheapest row is highlighted with a "Cheapest" badge.
+- **Airports in the results:** each flight shows where it leaves from and lands ("14:55 from Dusseldorf Weeze", "06:15 to Cologne"), since with several departure airports they can differ.
 
 The full requirements are in `docs/requirements.md`.
 
@@ -86,6 +90,31 @@ The trip is chosen **airport first**: From is an airport, and To is either an ai
 - **To** only offers direct destinations: countries first ("Any airport in Spain"), then airports.
 - **⇅ Swap** works only when To is a single airport. If there is no direct flight back, To is cleared.
 - A destination that turns out not to be served (an old saved route, an edited link) is dropped once routes load. It is never shown as if it were valid.
+
+### Several departure airports ("Also fly from")
+
+For someone who lives between airports, e.g. a student in Aachen who can fly from Cologne, Weeze or Eindhoven.
+
+- **When it appears:** once From and To are chosen, under the boxes (`components/trip-fields/`). It is optional.
+- **Limit:** up to 3 departure airports in total (`MAX_ORIGINS`, the same limit as the API). At the limit, it says "You can fly from up to 3 airports."
+- **Only airports that fly there:** it offers only airports with a direct flight to the destination (or to any airport in the destination country).
+  - These come from the destination country's routes, which run both ways: one request, whatever the number of candidates.
+  - While they load, a compact loader says "Finding airports that fly to {destination}…".
+  - If there are none: "No other airport flies directly to {destination}."
+- **Suggestions:** the 3 closest airports within 150 km (`NEARBY_KM`) of the first departure are one-click buttons, e.g. "+ Eindhoven 90 km". Their accessible name is "Add Eindhoven, 90 km away", since the "+" alone says nothing.
+- **Any distance:** the "Add a departure airport" box lists every airport that flies there, closest first, with its distance ("90 km away · Netherlands · EIN").
+- **Chips:** chosen extra departures show as chips (flag, name, distance) with a × to remove them.
+- **Out and back:** the search flies out from any of them and back to any of them, whichever is cheapest. Out from Weeze and back to Cologne is allowed.
+
+Rules:
+
+- **The first airport is the main one.** From shows it, and the destination list, To options and map lines come from it.
+- **Changing From starts over.** The destination and the extra departures are cleared.
+- **Clearing To also removes the extra departures**, since they depend on the destination.
+- **Changing To drops extra departures that don't fly to the new destination.**
+- **Removing the first departure** (its chip, in saved routes or the URL) makes the next one the main departure; the destination stays.
+- **⇅ Swap** is disabled with more than one departure airport.
+- **Saved routes and the URL** keep every departure airport: "Cologne + Dusseldorf Weeze → Palma de Mallorca", `?from=CGN,NRN&to=PMI`.
 
 ### From/To boxes (`components/airport-search/`)
 
@@ -136,6 +165,7 @@ An ARIA 1.2 combobox: `role="combobox"` with `aria-expanded`, `aria-controls` an
 | State           | Airports                                                                 | Lines                                                    |
 | --------------- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
 | Nothing chosen  | Every Ryanair airport is a clickable blue dot. Clicking sets **From**.   | None                                                     |
+| Several departures | Every departure airport is primary and bold.                          | From each extra departure, one bold line to the chosen destination airport. For "any airport in a country" only the first departure has lines (where the others fly in that country isn't loaded). |
 | From chosen     | The departure dot is primary and bold. Destinations are blue and clickable (clicking sets **To**). Other airports are grey, can't be chosen, and their tooltip says "No direct flight from X". | A thin great-circle line to every destination |
 | To chosen       | The trip's dots are primary.                                             | The chosen line is bold with an arrow; the others fade (`--map-faded-opacity`) |
 | Any airport in a country | Same, and that country is filled `--color-primary-subtle` with a primary border. | Lines to all its airports are bold          |
@@ -175,6 +205,7 @@ Use it for every wait the user can notice, instead of plain "Loading…" text.
 - `/?from=CGN` (From only)
 - `/?from=CGN&to=PMI` (airport to airport)
 - `/search?from=OPO&to_country=ES` (any airport in Spain)
+- `/?from=CGN,NRN&to=PMI` (several departure airports: comma-separated, the first is the main one)
 
 On load the URL wins, once airports arrive. After that, every change replaces the URL (`replaceUrl`, so it doesn't add history entries). Reloading or sharing a link keeps the route. **Search prices** is just a link to `/search` with these params.
 

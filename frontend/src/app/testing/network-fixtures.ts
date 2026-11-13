@@ -1,3 +1,4 @@
+import { HttpTestingController } from '@angular/common/http/testing';
 import { Airport, Route } from '../services/network';
 
 export function airport(
@@ -45,4 +46,17 @@ export const ES_ROUTES: Route[] = [
 export function routesFor(country: string) {
   return (req: { url: string; params: { get(name: string): string | null } }) =>
     req.url.endsWith('/network/routes') && req.params.get('origin_country') === country;
+}
+
+/** Routes per country, as the fake backend serves them. */
+export const ROUTES_BY_COUNTRY: Record<string, Route[]> = { PT: PT_ROUTES, ES: ES_ROUTES };
+
+/**
+ * Answers every open routes request from the fixtures. Completing a trip loads the destination
+ * country's routes (to find other departure airports), so most tests have one pending.
+ */
+export function answerRoutes(http: HttpTestingController): void {
+  for (const request of http.match((req) => req.url.endsWith('/network/routes'))) {
+    request.flush(ROUTES_BY_COUNTRY[request.request.params.get('origin_country') ?? ''] ?? []);
+  }
 }

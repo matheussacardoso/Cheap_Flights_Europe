@@ -4,7 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import type { FeatureCollection, MultiPolygon } from 'geojson';
 import { CountryShapeProperties, MAP_URL } from '../../services/map-data';
 import { TripSelection } from '../../services/trip-selection';
-import { AIRPORTS, PT_ROUTES, routesFor } from '../../testing/network-fixtures';
+import { AIRPORTS, PT_ROUTES, routesFor, answerRoutes } from '../../testing/network-fixtures';
 import { TripMapComponent } from './trip-map';
 
 /** A rough box around a country; rings run clockwise, as d3-geo expects. */
@@ -64,7 +64,10 @@ describe('TripMapComponent', () => {
     await fixture.whenStable();
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    answerRoutes(http);
+    http.verify();
+  });
 
   /** The aria-labels of the airports the user can click, in Tab order. */
   function choices(): string[] {
@@ -84,8 +87,8 @@ describe('TripMapComponent', () => {
   }
 
   async function flyFromPorto(): Promise<void> {
-    trip.origin.set('OPO');
-    trip.routes.set(PT_ROUTES);
+    trip.origins.set(['OPO']);
+    trip.routesByCountry.set({ PT: PT_ROUTES });
     await fixture.whenStable();
   }
 

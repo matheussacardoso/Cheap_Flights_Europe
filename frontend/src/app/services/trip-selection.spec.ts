@@ -1,7 +1,13 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { AIRPORTS, ES_ROUTES, PT_ROUTES, routesFor } from '../testing/network-fixtures';
+import {
+  AIRPORTS,
+  ES_ROUTES,
+  PT_ROUTES,
+  routesFor,
+  answerRoutes,
+} from '../testing/network-fixtures';
 import { TripSelection } from './trip-selection';
 
 describe('TripSelection', () => {
@@ -19,7 +25,10 @@ describe('TripSelection', () => {
     http.expectOne((req) => req.url.endsWith('/network/airports')).flush(AIRPORTS);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    answerRoutes(http);
+    http.verify();
+  });
 
   function chooseOrigin(code = 'OPO'): void {
     trip.selectOrigin(code);
@@ -47,7 +56,7 @@ describe('TripSelection', () => {
     chooseOrigin();
     trip.selectDestination('MAD');
     expect(trip.searchSelection()).toEqual({
-      origin: 'OPO',
+      origins: ['OPO'],
       destination: 'MAD',
       destinationCountry: null,
     });
@@ -55,7 +64,7 @@ describe('TripSelection', () => {
 
     trip.selectDestinationCountry('ES');
     expect(trip.searchSelection()).toEqual({
-      origin: 'OPO',
+      origins: ['OPO'],
       destination: null,
       destinationCountry: 'ES',
     });
@@ -70,7 +79,7 @@ describe('TripSelection', () => {
     trip.selectDestinationCountry('ES');
     trip.clearOrigin();
     expect(trip.searchSelection()).toEqual({
-      origin: null,
+      origins: [],
       destination: null,
       destinationCountry: null,
     });
@@ -98,24 +107,24 @@ describe('TripSelection', () => {
   });
 
   it('applies a whole route and drops a destination without a direct flight', () => {
-    expect(trip.applyRoute({ origin: 'LIS', destination: 'MAD', destinationCountry: null })).toBe(
-      true,
-    );
+    expect(
+      trip.applyRoute({ origins: ['LIS'], destination: 'MAD', destinationCountry: null }),
+    ).toBe(true);
     http.expectOne(routesFor('PT')).flush(PT_ROUTES);
     expect(trip.origin()).toBe('LIS');
     expect(trip.destination()).toBeNull(); // LIS has no flight to MAD
 
-    trip.applyRoute({ origin: 'OPO', destination: null, destinationCountry: 'ES' });
+    trip.applyRoute({ origins: ['OPO'], destination: null, destinationCountry: 'ES' });
     expect(trip.destinationCountry()).toBe('ES');
   });
 
   it('refuses a route with unknown airports', () => {
-    expect(trip.applyRoute({ origin: 'XXX', destination: null, destinationCountry: null })).toBe(
+    expect(trip.applyRoute({ origins: ['XXX'], destination: null, destinationCountry: null })).toBe(
       false,
     );
-    expect(trip.applyRoute({ origin: 'OPO', destination: 'XXX', destinationCountry: null })).toBe(
-      false,
-    );
+    expect(
+      trip.applyRoute({ origins: ['OPO'], destination: 'XXX', destinationCountry: null }),
+    ).toBe(false);
     expect(trip.origin()).toBeNull();
   });
 
@@ -145,5 +154,82 @@ describe('TripSelection', () => {
     late.flush(PT_ROUTES);
 
     expect(codes()).toEqual(['OPO']);
+  });
+
+  describe('several departure airports', () => {
+    /** Porto to `destination`; then the store loads Spain's routes to find other departures. */
+    function fromPortoTo(destination: string): void {
+      chooseOrigin('OPO');
+      trip.selectDestination(destination);
+      TestBed.tick();
+      http.expectOne(routesFor('ES')).flush(ES_ROUTES);
+    }
+
+    const origins = () => trip.origins();
+
+    it('offers the other airports that fly to the destination, closest first', () => {
+      fromPortoTo('AGP');
+
+      // Malaga flies back to Lisbon and Porto: Lisbon is the alternative, ~275 km from Porto.
+      const [lisbon] = trip.alternativeOrigins();
+      expect(trip.alternativeOrigins().length).toBe(1);
+      expect(lisbon.airport.code).toBe('LIS');
+      expect(lisbon.km).toBeGreaterThan(270);
+      expect(lisbon.km).toBeLessThan(280);
+      // Too far to be suggested as nearby (150 km), but it can still be added.
+      expect(trip.nearbyOrigins()).toEqual([]);
+    });
+
+    it('adds and removes departure airports', () => {
+      fromPortoTo('AGP');
+      trip.addOrigin('LIS');
+      expect(trip.searchSelection()).toEqual({
+        origins: ['OPO', 'LIS'],
+        destination: 'AGP',
+        destinationCountry: null,
+      });
+      expect(trip.canSwap()).toBe(false);
+
+      // Removing the first departure makes the next one the main departure.
+      trip.removeOrigin('OPO');
+      expect(origins()).toEqual(['LIS']);
+      expect(trip.destination()).toBe('AGP');
+    });
+
+    it('only accepts airports that fly to the destination', () => {
+      fromPortoTo('AGP');
+      trip.addOrigin('DUB');
+      expect(origins()).toEqual(['OPO']);
+    });
+
+    it('drops extra departures that do not fly to a new destination', () => {
+      fromPortoTo('AGP');
+      trip.addOrigin('LIS');
+      trip.selectDestination('MAD'); // only Porto flies to Madrid
+      expect(origins()).toEqual(['OPO']);
+    });
+
+    it('needs a destination first, and starts over when the first departure changes', () => {
+      chooseOrigin('OPO');
+      trip.addOrigin('LIS');
+      expect(origins()).toEqual(['OPO']);
+
+      trip.selectDestination('AGP');
+      TestBed.tick();
+      http.expectOne(routesFor('ES')).flush(ES_ROUTES);
+      trip.addOrigin('LIS');
+      trip.selectOrigin('LIS');
+      expect(origins()).toEqual(['LIS']);
+      expect(trip.destination()).toBeNull();
+    });
+
+    it('applies a route with several departures', () => {
+      trip.applyRoute({ origins: ['OPO', 'LIS'], destination: 'AGP', destinationCountry: null });
+      http.expectOne(routesFor('PT')).flush(PT_ROUTES);
+      TestBed.tick();
+      http.expectOne(routesFor('ES')).flush(ES_ROUTES);
+
+      expect(origins()).toEqual(['OPO', 'LIS']);
+    });
   });
 });

@@ -34,6 +34,7 @@
             <td>{{ airportName(trip.outbound.destination) }} ({{ trip.outbound.destination }})</td>
             <td>
               <strong>{{ trip.outbound.departureTime | date: 'HH:mm' }}</strong>
+              from {{ airportName(trip.outbound.origin) }}
               <span class="detail"
                 >{{ trip.outbound.flightNumber }} ·
                 {{ trip.outbound.price | currency: trip.outbound.currency }}</span
@@ -41,6 +42,7 @@
             </td>
             <td>
               <strong>{{ trip.inbound.departureTime | date: 'HH:mm' }}</strong>
+              to {{ airportName(trip.inbound.destination) }}
               <span class="detail"
                 >{{ trip.inbound.flightNumber }} ·
                 {{ trip.inbound.price | currency: trip.inbound.currency }}</span

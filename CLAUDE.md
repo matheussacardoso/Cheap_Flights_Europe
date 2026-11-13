@@ -51,7 +51,10 @@ npm run build:map                             # regenerate public/maps/europe.js
 - External data has two sources:
   - Fares come from `ryanair-py`, which is sync, through `FlightService` and `/flights/*`.
     - `/flights/cheapest` returns one-way fares.
-    - `/flights/trips` returns round trips on set weekdays. It makes one round-trip query per week in the period (at most 92 days), runs them on a small thread pool inside the sync service, and returns the trips cheapest first.
+    - `/flights/trips` returns round trips on set weekdays (at most 92 days), cheapest first. The fare queries run on a small thread pool inside the sync service.
+    - Both take 1 to 3 departure airports as a repeated `origin` param.
+    - With one departure airport, `/flights/trips` makes one Ryanair round-trip query per week.
+    - With several, the return may land at another of them, which round-trip fares can't express. `_open_jaw_trips` combines one-way fares instead: outbound per origin and week, return per destination airport and week.
   - The route network (active airports and the direct routes per airport) comes from Ryanair's unofficial public website API, through `NetworkService` and `/network/*`. It is async, uses the shared `httpx.AsyncClient` created in the `lifespan`, and keeps an in-memory TTL cache per worker. Because that API is unofficial, any upstream or parsing failure becomes a 502.
 - Ryanair's fare API only matches **lowercase** country codes (`es`, not `ES`). The API accepts uppercase codes, and `FlightService` lowercases them.
 
@@ -92,12 +95,14 @@ npm run build:map                             # regenerate public/maps/europe.js
 - The app is **zoneless** (`provideZonelessChangeDetection()`), so UI updates must come from signals or template events, not zone.js-triggered change detection.
 - **Routes, map and nav bar UI rules:** see `frontend/docs/routes-and-map.md`. Update it when you change how these screens behave.
 - **Pages:** a nav bar (`components/nav-bar/`) links two pages. **Routes** (`/`, `components/routes-page/`) is a full-screen map with a sidebar. **Search** (`/search`, `components/flight-search/`) has the dates and the price search. One-way results are at `/search/results`, and round trips on set weekdays at `/search/trips` (`components/trip-results/`). Weekday presets and the period maths are in `services/trip-period.ts`.
-- **Trip state:** `TripSelection` (`services/trip-selection.ts`) is the single source of truth for the trip, airport first: `origin`, then either `destination` (an airport) or `destinationCountry` ("any airport in a country", which maps to a `destination_country` search).
-  - It's a signals store. Routes load per origin country, and `destinations` and `reachableCountries` are computed from them. Changing the origin clears the destination. Once routes load, a destination without a direct flight is dropped.
+- **Trip state:** `TripSelection` (`services/trip-selection.ts`) is the single source of truth for the trip, airport first: `origins` (1 to 3 airports), then either `destination` (an airport) or `destinationCountry` ("any airport in a country", which maps to a `destination_country` search).
+  - `origin` is the first, main departure airport; destinations and map lines come from it.
+  - Extra departures can only be added once a destination is chosen, and must fly there. Which airports do is read from the destination country's routes.
+  - It's a signals store. Routes load per country and are cached in `routesByCountry`. `destinations` and `reachableCountries` are computed from them. Changing the origin clears the destination. Once routes load, a destination without a direct flight is dropped.
   - Every view reads and writes this store, not its own state: the From/To boxes (`components/trip-fields/`), the destination list and the map.
-  - `syncTripWithUrl()` (`services/trip-url.ts`) mirrors the trip into the query params (`?from=CGN&to=PMI` or `&to_country=ES`) and restores it on load. Call it from each page's constructor. Other in-memory data (search results) is still lost on reload.
+  - `syncTripWithUrl()` (`services/trip-url.ts`) mirrors the trip into the query params (`?from=CGN&to=PMI`, `&to_country=ES`, or `?from=CGN,NRN` for several departures) and restores it on load. Call it from each page's constructor. Other in-memory data (search results) is still lost on reload.
 - **Airport search:** `components/airport-search/` is a reusable ARIA combobox. Matching ignores accents and case, and checks names, cities, codes and countries.
-- **Saved routes:** `SavedRoutes` (`services/saved-routes.ts`) keeps the user's saved trips in `localStorage` (key `cheap-flights.saved-routes.v1`). There are no accounts, so routes live in that browser only.
+- **Saved routes:** `SavedRoutes` (`services/saved-routes.ts`) keeps the user's saved trips in `localStorage` (key `cheap-flights.saved-routes.v2`; v1 routes, with a single `origin`, are migrated on first read). There are no accounts, so routes live in that browser only.
   - Every storage access is wrapped in try/catch, and stored entries are validated on read. When you change the `SavedRoute` shape, bump the key version.
   - Choosing a saved route calls `TripSelection.applyRoute()`.
 - **Map:** `components/trip-map/` draws an SVG with `d3-geo`. Country shapes come from `public/maps/europe.json`, a static file generated by `scripts/build-map.mjs` from `world-atlas`.

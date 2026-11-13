@@ -1,5 +1,11 @@
 import { Component, computed, inject, input } from '@angular/core';
-import { TripSelection } from '../../services/trip-selection';
+import {
+  AlternativeOrigin,
+  MAX_ORIGINS,
+  TripSelection,
+  distanceKm,
+} from '../../services/trip-selection';
+import { LoadingIndicatorComponent } from '../loading-indicator/loading-indicator';
 import {
   AirportSearchComponent,
   SearchOption,
@@ -7,11 +13,17 @@ import {
   countryOption,
 } from '../airport-search/airport-search';
 
-/** The From, swap and To boxes, bound to the shared `TripSelection` store. */
+/** Suggested extra departures shown as one-click buttons. */
+const SUGGESTIONS = 3;
+
+/**
+ * The From, swap and To boxes, bound to the shared `TripSelection` store. Once From and To are
+ * chosen, "Also fly from" adds up to two more departure airports (e.g. Weeze as well as Cologne).
+ */
 @Component({
   selector: 'app-trip-fields',
   standalone: true,
-  imports: [AirportSearchComponent],
+  imports: [AirportSearchComponent, LoadingIndicatorComponent],
   templateUrl: './trip-fields.html',
   styleUrl: './trip-fields.css',
   host: { '[class.is-row]': "layout() === 'row'" },
@@ -58,6 +70,49 @@ export class TripFieldsComponent {
     const count = this.trip.destinations().length;
     return `${count} direct ${count === 1 ? 'destination' : 'destinations'}`;
   });
+
+  readonly maxOrigins = MAX_ORIGINS;
+
+  /** The extra departure airports already chosen, with their distance from the first. */
+  readonly extraOrigins = computed(() => {
+    const first = this.trip.originAirport();
+    return this.trip
+      .originAirports()
+      .slice(1)
+      .map((airport) => ({
+        airport,
+        km: first ? Math.round(distanceKm(first, airport)) : 0,
+      }));
+  });
+
+  /** The closest airports that fly to the destination, as one-click suggestions. */
+  readonly suggestions = computed(() =>
+    this.trip
+      .nearbyOrigins()
+      .slice(0, SUGGESTIONS)
+      .map(({ airport, km }) => ({ airport, km: Math.round(km) })),
+  );
+
+  /** Every airport that flies to the destination, closest first, for the "Add" box. */
+  readonly alternativeOptions = computed(() =>
+    this.trip.alternativeOrigins().map(({ airport, km }: AlternativeOrigin) => ({
+      ...airportOption(airport),
+      subtitle: `${Math.round(km)} km away · ${airport.countryName} · ${airport.code}`,
+    })),
+  );
+
+  readonly destinationName = computed(() => {
+    const airport = this.trip.destinationAirport();
+    if (airport) {
+      return airport.name;
+    }
+    const country = this.trip.countries().find((c) => c.code === this.trip.destinationCountry());
+    return country?.name ?? 'the destination';
+  });
+
+  addOrigin(code: string): void {
+    this.trip.addOrigin(code);
+  }
 
   chooseOrigin(option: SearchOption): void {
     this.trip.selectOrigin(option.code);

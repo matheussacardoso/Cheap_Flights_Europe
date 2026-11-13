@@ -3,14 +3,14 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SAVED_ROUTES_KEY, SavedRoute } from '../../services/saved-routes';
 import { TripSelection } from '../../services/trip-selection';
-import { AIRPORTS, PT_ROUTES } from '../../testing/network-fixtures';
+import { AIRPORTS, PT_ROUTES, answerRoutes } from '../../testing/network-fixtures';
 import { SavedRoutesComponent } from './saved-routes';
 
 const ROUTES: SavedRoute[] = [
   {
     id: 'OPO-MAD',
     originCountry: 'PT',
-    origin: 'OPO',
+    origins: ['OPO'],
     originName: 'OPO Airport',
     destinationCountry: 'ES',
     destination: 'MAD',
@@ -19,7 +19,7 @@ const ROUTES: SavedRoute[] = [
   {
     id: 'LIS-any-ES',
     originCountry: 'PT',
-    origin: 'LIS',
+    origins: ['LIS'],
     originName: 'LIS Airport',
     destinationCountry: 'ES',
     destination: null,
@@ -52,7 +52,10 @@ describe('SavedRoutesComponent', () => {
   }
 
   beforeEach(() => localStorage.clear());
-  afterEach(() => http.verify());
+  afterEach(() => {
+    answerRoutes(http);
+    http.verify();
+  });
 
   it('renders nothing visible without saved routes', async () => {
     await render([]);
@@ -75,7 +78,7 @@ describe('SavedRoutesComponent', () => {
     await fixture.whenStable();
 
     expect(trip.searchSelection()).toEqual({
-      origin: 'LIS',
+      origins: ['LIS'],
       destination: null,
       destinationCountry: 'ES',
     });

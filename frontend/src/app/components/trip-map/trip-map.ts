@@ -176,6 +176,7 @@ export class TripMapComponent implements OnInit {
   readonly airports = computed<MapAirport[]>(() => {
     const projection = this.projection();
     const origin = this.trip.origin();
+    const origins = new Set(this.trip.origins());
     const reachable = this.trip.destinationCodes();
     const destination = this.trip.destination();
     const destinationCountry = this.trip.destinationCountry();
@@ -189,7 +190,7 @@ export class TripMapComponent implements OnInit {
         const chosen =
           airport.code === destination ||
           (airport.countryCode === destinationCountry && reachable.has(airport.code));
-        if (airport.code === origin) {
+        if (origins.has(airport.code)) {
           status = 'origin';
           note = 'Departure airport';
         } else if (chosen) {
@@ -223,33 +224,43 @@ export class TripMapComponent implements OnInit {
     return dots.sort((a, b) => layer[a.status] - layer[b.status] || a.label.localeCompare(b.label));
   });
 
-  /** Great-circle lines from the departure airport to its direct destinations. */
+  /**
+   * Great-circle lines from the first departure airport to its direct destinations, plus one
+   * from each extra departure airport to the chosen destination airport. (Where an extra
+   * departure flies in a destination country isn't loaded, so it gets no lines then.)
+   */
   readonly flights = computed<Flight[]>(() => {
-    const origin = this.trip.originAirport();
+    const [origin, ...extra] = this.trip.originAirports();
     if (!origin) {
       return [];
     }
-    const destination = this.trip.destination();
+    const destination = this.trip.destinationAirport();
     const country = this.trip.destinationCountry();
     const path = this.path();
-    return (
-      this.trip
-        .destinations()
-        .map((airport) => ({
-          code: airport.code,
-          chosen: airport.code === destination || airport.countryCode === country,
-          d:
-            path({
-              type: 'LineString',
-              coordinates: [
-                [origin.longitude, origin.latitude],
-                [airport.longitude, airport.latitude],
-              ],
-            }) ?? '',
-        }))
-        // Chosen flights last, on top.
-        .sort((a, b) => Number(a.chosen) - Number(b.chosen))
-    );
+    const line = (from: Airport, to: Airport, chosen: boolean): Flight => ({
+      code: `${from.code}-${to.code}`,
+      chosen,
+      d:
+        path({
+          type: 'LineString',
+          coordinates: [
+            [from.longitude, from.latitude],
+            [to.longitude, to.latitude],
+          ],
+        }) ?? '',
+    });
+    const fromFirst = this.trip
+      .destinations()
+      .map((airport) =>
+        line(
+          origin,
+          airport,
+          airport.code === destination?.code || airport.countryCode === country,
+        ),
+      );
+    const fromExtra = destination ? extra.map((airport) => line(airport, destination, true)) : [];
+    // Chosen flights last, on top.
+    return [...fromFirst, ...fromExtra].sort((a, b) => Number(a.chosen) - Number(b.chosen));
   });
 
   readonly hasChosenFlight = computed(() => this.flights().some((flight) => flight.chosen));
@@ -259,13 +270,14 @@ export class TripMapComponent implements OnInit {
     const origin = this.trip.originAirport();
     let airports: Airport[] = [];
     if (origin) {
+      const extra = this.trip.originAirports().slice(1);
       const destination = this.trip.destinationAirport();
       const country = this.trip.destinationCountry();
       const destinations = this.trip.destinations();
       const chosen = destination
         ? [destination]
         : destinations.filter((airport) => airport.countryCode === country);
-      airports = [origin, ...(chosen.length ? chosen : destinations)];
+      airports = [origin, ...extra, ...(chosen.length ? chosen : destinations)];
     }
     const projection = this.projection();
     return airports
