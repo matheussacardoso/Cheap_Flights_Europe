@@ -6,7 +6,13 @@ import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { MAP_URL } from '../../services/map-data';
 import { TripSelection } from '../../services/trip-selection';
-import { AIRPORTS, PT_ROUTES, routesFor } from '../../testing/network-fixtures';
+import {
+  AIRPORTS,
+  ES_ROUTES,
+  PT_ROUTES,
+  answerRoutes,
+  routesFor,
+} from '../../testing/network-fixtures';
 import { RoutesPageComponent } from './routes-page';
 
 @Component({ template: '' })
@@ -40,7 +46,10 @@ describe('RoutesPageComponent', () => {
     element = harness.routeNativeElement!;
   }
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    answerRoutes(http);
+    http.verify();
+  });
 
   function destinations(): string[] {
     return [...element.querySelectorAll('.destination .name')].map(
@@ -82,12 +91,26 @@ describe('RoutesPageComponent', () => {
     await harness.fixture.whenStable();
 
     expect(trip.searchSelection()).toEqual({
-      origin: 'OPO',
+      origins: ['OPO'],
       destination: 'MAD',
       destinationCountry: null,
     });
     expect(element.querySelector('.destination[aria-pressed="true"] .name')?.textContent).toBe(
       'MAD Airport',
     );
+  });
+
+  it('keeps several departure airports in the URL', async () => {
+    await open('/?from=OPO,LIS&to=AGP');
+    http.expectOne(routesFor('PT')).flush(PT_ROUTES);
+    await harness.fixture.whenStable();
+    http.expectOne(routesFor('ES')).flush(ES_ROUTES);
+    await harness.fixture.whenStable();
+
+    expect(trip.origins()).toEqual(['OPO', 'LIS']);
+    expect(element.querySelector('.route-title')?.textContent).toContain(
+      'OPO Airport + LIS Airport',
+    );
+    expect(TestBed.inject(Router).url).toBe('/?from=OPO,LIS&to=AGP');
   });
 });

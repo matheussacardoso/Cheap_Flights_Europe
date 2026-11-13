@@ -5,7 +5,10 @@
   height: calc(100dvh - var(--nav-height));
 }
 
+/* position: relative contains absolutely placed children (visually hidden live regions), which
+   would otherwise sit below the screen and make the whole page scroll. */
 .sidebar {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);

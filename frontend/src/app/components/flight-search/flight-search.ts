@@ -90,10 +90,10 @@ export class FlightSearchComponent {
 
   readonly showTripError = computed(() => this.submitted() && !this.trip.isComplete());
 
-  // origin/destination/destination_country have no inputs: they follow the trip store.
+  // origins/destination/destination_country have no inputs: they follow the trip store.
   searchForm = this.fb.nonNullable.group(
     {
-      origin: ['', Validators.required],
+      origins: [[] as string[], Validators.required],
       destination: [''],
       destination_country: [''],
       trip_type: ['round-trip' as TripType],
@@ -142,7 +142,8 @@ export class FlightSearchComponent {
   readonly loadingText = computed(() => {
     const { depart_day, return_day, date_from, date_to } = this.searchForm.getRawValue();
     this.form();
-    const from = this.trip.originAirport()?.name ?? 'your airport';
+    const names = this.trip.originAirports().map((airport) => airport.name);
+    const from = names.length ? names.join(', ') : 'your airport';
     const country = this.trip.countries().find((c) => c.code === this.trip.destinationCountry());
     const to =
       this.trip.destinationAirport()?.name ?? `any airport in ${country?.name ?? 'the country'}`;
@@ -173,7 +174,7 @@ export class FlightSearchComponent {
     effect(() => {
       const selection = this.trip.searchSelection();
       this.searchForm.patchValue({
-        origin: selection.origin ?? '',
+        origins: selection.origins,
         destination: selection.destination ?? '',
         destination_country: selection.destinationCountry ?? '',
       });
@@ -268,7 +269,7 @@ export class FlightSearchComponent {
 
     const value = this.searchForm.getRawValue();
     const route = {
-      origin: value.origin,
+      origin: value.origins,
       destination: value.destination || undefined,
       destination_country: value.destination_country || undefined,
       currency: value.currency || undefined,
@@ -292,12 +293,20 @@ export class FlightSearchComponent {
     search$.subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate([resultsPage]);
+        // Results start at the top, not at the scroll position of this (long) form.
+        this.router.navigate([resultsPage]).then(() => scrollToTop());
       },
       error: () => {
         this.errorMessage.set('Could not load flights. Check that the backend is running.');
         this.loading.set(false);
       },
     });
+  }
+}
+
+/** Skipped where scrolling isn't implemented (jsdom in tests). */
+function scrollToTop(): void {
+  if (!navigator.userAgent.includes('jsdom')) {
+    window.scrollTo({ top: 0 });
   }
 }

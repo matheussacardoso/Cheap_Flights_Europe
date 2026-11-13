@@ -29,3 +29,79 @@
   (chosen)="chooseDestination($event)"
   (cleared)="trip.clearDestination()"
 />
+
+@if (trip.isComplete()) {
+  <section class="extra-origins" aria-labelledby="extra-origins-title">
+    <h3 id="extra-origins-title" class="extra-title">
+      Also fly from <span class="optional">(optional)</span>
+    </h3>
+    <p class="extra-hint">
+      Fly out from any of these airports and back to any of them, whichever is cheaper.
+    </p>
+
+    @if (extraOrigins().length) {
+      <ul class="chips">
+        @for (extra of extraOrigins(); track extra.airport.code) {
+          <li class="chip">
+            <img
+              class="flag"
+              [src]="'flags/' + extra.airport.countryCode.toLowerCase() + '.svg'"
+              alt=""
+              width="24"
+              height="16"
+            />
+            <span>{{ extra.airport.name }}</span>
+            <span class="km">{{ extra.km }} km</span>
+            <button
+              type="button"
+              class="chip-remove"
+              [attr.aria-label]="'Remove ' + extra.airport.name"
+              title="Remove"
+              (click)="trip.removeOrigin(extra.airport.code)"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (trip.canAddOrigin()) {
+      @if (trip.loadingAlternatives()) {
+        <app-loading-indicator
+          [title]="'Finding airports that fly to ' + destinationName() + '…'"
+          [compact]="true"
+        />
+      } @else if (alternativeOptions().length) {
+        @if (suggestions().length) {
+          <div class="suggestions" role="group" aria-label="Nearby airports">
+            @for (nearby of suggestions(); track nearby.airport.code) {
+              <button
+                type="button"
+                class="suggestion"
+                [attr.aria-label]="'Add ' + nearby.airport.name + ', ' + nearby.km + ' km away'"
+                (click)="addOrigin(nearby.airport.code)"
+              >
+                <span aria-hidden="true">+</span>
+                {{ nearby.airport.name }}
+                <span class="km">{{ nearby.km }} km</span>
+              </button>
+            }
+          </div>
+        }
+        <app-airport-search
+          class="add-origin"
+          label="Add a departure airport"
+          placeholder="City, airport or code"
+          [options]="alternativeOptions()"
+          [value]="null"
+          (chosen)="addOrigin($event.code)"
+        />
+      } @else {
+        <p class="extra-hint">No other airport flies directly to {{ destinationName() }}.</p>
+      }
+    } @else {
+      <p class="extra-hint">You can fly from up to {{ maxOrigins }} airports.</p>
+    }
+  </section>
+}

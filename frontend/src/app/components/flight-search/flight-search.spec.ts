@@ -6,7 +6,7 @@ import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { TODAY } from '../../services/trip-period';
 import { TripSelection } from '../../services/trip-selection';
-import { AIRPORTS, PT_ROUTES, routesFor } from '../../testing/network-fixtures';
+import { AIRPORTS, PT_ROUTES, routesFor, answerRoutes } from '../../testing/network-fixtures';
 import { FlightSearchComponent } from './flight-search';
 
 @Component({ template: '' })
@@ -41,7 +41,10 @@ describe('FlightSearchComponent', () => {
     element = harness.routeNativeElement!;
   }
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    answerRoutes(http);
+    http.verify();
+  });
 
   /** The options of a select, as their visible text. */
   function options(id: string): string[] {
@@ -153,7 +156,7 @@ describe('FlightSearchComponent', () => {
   it('saves the chosen trip and lists it under saved routes', async () => {
     await open('/search');
     TestBed.inject(TripSelection).applyRoute({
-      origin: 'OPO',
+      origins: ['OPO'],
       destination: 'MAD',
       destinationCountry: null,
     });
@@ -169,5 +172,22 @@ describe('FlightSearchComponent', () => {
     expect(element.querySelector('.route-button')?.getAttribute('aria-label')).toBe(
       'OPO Airport to MAD Airport',
     );
+  });
+
+  it('searches from every departure airport', async () => {
+    await open('/search?from=OPO,LIS&to=AGP');
+    http.expectOne(routesFor('PT')).flush(PT_ROUTES);
+    await harness.fixture.whenStable();
+    answerRoutes(http);
+    await harness.fixture.whenStable();
+
+    element.querySelector('form')!.dispatchEvent(new Event('submit'));
+    await harness.fixture.whenStable();
+    const search = http.expectOne((req) => req.url.endsWith('/flights/trips'));
+    expect(search.request.params.getAll('origin')).toEqual(['OPO', 'LIS']);
+    expect(element.querySelector('app-loading-indicator')?.textContent).toContain(
+      'from OPO Airport, LIS Airport to AGP Airport',
+    );
+    search.flush([]);
   });
 });

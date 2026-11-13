@@ -13,6 +13,7 @@ The main goal is to search for cheap flights across Europe from low-cost airline
 | 3 | The user can **save routes in a JSON file and upload it** to the app. The app then searches for the cheapest date and route using their parameters. | 🟡 Partly done. Routes are saved in this browser (`localStorage`), and one click fills the search. JSON export/upload and searching a whole list of routes at once are not built yet. |
 | 4 | The user can **search cheap flights for the period they want**, for example Thursday to Monday or Wednesday to Monday. | ✅ Done. See *Search by weekdays* below. |
 | 5 | The app **doesn't need an account**. | ✅ Done. There are no accounts. Saved routes stay in the browser, and the chosen route is kept in the URL. |
+| 6 | **Several departure airports**: someone living between airports (e.g. a student in Aachen) can fly from any of them, e.g. Cologne or Dusseldorf Weeze. Only for the origin. | ✅ Done. See *Several departure airports* below. |
 
 ## Search by weekdays (requirement 4)
 
@@ -57,6 +58,35 @@ GET /flights/trips?origin=CGN&destination=PMI&date_from=2026-12-01&date_to=2027-
 
 - Use `destination_country=ES` instead of `destination` for any airport in a country.
 - The backend makes one Ryanair round-trip fare query per week, four at a time. A three-month period takes about 2–3 seconds.
+
+## Several departure airports (requirement 6)
+
+**How it works for the user:**
+
+1. Choose **From** and **To** as usual, e.g. Cologne → Palma de Mallorca.
+2. **Also fly from** appears below. Add up to two more departure airports:
+   - a one-click suggestion of a nearby airport, e.g. "+ Dusseldorf Weeze 92 km";
+   - or any airport that flies to the destination, from the "Add a departure airport" box.
+3. Search as usual. Each result shows which airport the flight leaves from and lands at.
+
+**Rules:**
+
+- **At most 3 departure airports**, and every one must fly directly to the destination (or to the destination country).
+- **One way:** the cheapest flights from any of them.
+- **Round trip:** out from any of them and back to any of them, whichever is cheapest. Out from Weeze and back to Cologne is allowed.
+- **Destination only:** extra airports are only for the departure; the destination stays a single airport or country.
+- **Nearest airports to Aachen** that Ryanair flies from: Cologne (75 km), Eindhoven (90 km), Dusseldorf Weeze (92 km), Brussels (113 km), Brussels Charleroi (120 km). Ryanair's "Dusseldorf" is Weeze, not Düsseldorf's main airport.
+
+**API:** repeat `origin`, e.g. `GET /flights/trips?origin=CGN&origin=NRN&destination=PMI&…`.
+
+- With one departure airport, the backend uses Ryanair's round-trip fares (one query per week).
+- With several, round-trip fares can't land at another airport. So it combines one-way fares:
+  - one query per departure airport and week for the way out;
+  - one query per destination airport and week for the way back;
+  - then, per week and destination airport, the cheapest flight out plus the cheapest flight back to any departure airport.
+- Live examples:
+  - Cologne + Weeze → Palma, Thursday to Monday over three months: 3.7 s. The best trip was €75.98, out from Weeze and back to Cologne, cheaper than the best Cologne-only trip (€83.83).
+  - Three airports to any airport in Spain: about 7 s.
 
 ## Not built yet (from the README's vision)
 

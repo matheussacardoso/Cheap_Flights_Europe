@@ -13,7 +13,8 @@ export interface FlightResponse {
 }
 
 export interface FlightSearchParams {
-  origin: string;
+  /** 1 to 3 departure airports, sent as a repeated `origin` param. */
+  origin: string[];
   date_from: string;
   destination?: string;
   destination_country?: string;
@@ -30,7 +31,8 @@ export interface TripResponse {
 
 /** Mirrors backend `TripSearchParams`. Day names are lowercase English, e.g. `thursday`. */
 export interface TripSearchParams {
-  origin: string;
+  /** 1 to 3 departure airports, sent as a repeated `origin` param. */
+  origin: string[];
   date_from: string;
   date_to: string;
   depart_day: string;
@@ -53,7 +55,7 @@ export class FlightService {
 
   searchFlights(params: FlightSearchParams): Observable<FlightResponse[]> {
     let httpParams = new HttpParams()
-      .set('origin', params.origin)
+      .appendAll({ origin: params.origin })
       .set('date_from', params.date_from);
 
     if (params.destination) {
@@ -78,7 +80,7 @@ export class FlightService {
 
   searchTrips(params: TripSearchParams): Observable<TripResponse[]> {
     // HttpParams skips nothing by itself: drop the optional fields that aren't set.
-    const set = Object.entries(params).filter(([, value]) => !!value);
+    const set = Object.entries(params).filter(([, value]) => !!value && value.length !== 0);
     const httpParams = new HttpParams({ fromObject: Object.fromEntries(set) });
     return this.http
       .get<TripResponse[]>(`${API_BASE_URL}/flights/trips`, { params: httpParams })

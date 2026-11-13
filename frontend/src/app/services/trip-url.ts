@@ -2,10 +2,13 @@ import { effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Params, Router } from '@angular/router';
 import { TripSearchSelection, TripSelection } from './trip-selection';
 
-/** The trip as query params, e.g. `?from=CGN&to=PMI` or `?from=OPO&to_country=ES`. */
+/**
+ * The trip as query params, e.g. `?from=CGN&to=PMI`, `?from=OPO&to_country=ES`, or with several
+ * departure airports `?from=CGN,NRN&to=PMI`.
+ */
 export function tripQueryParams(trip: TripSearchSelection): Params {
   return {
-    from: trip.origin ?? undefined,
+    from: trip.origins.length ? trip.origins.join(',') : undefined,
     to: trip.destination ?? undefined,
     to_country: trip.destinationCountry ?? undefined,
   };
@@ -23,11 +26,15 @@ export function syncTripWithUrl(): void {
 
   const params = route.snapshot.queryParamMap;
   const fromUrl: TripSearchSelection = {
-    origin: params.get('from')?.toUpperCase() ?? null,
+    origins: (params.get('from') ?? '')
+      .toUpperCase()
+      .split(',')
+      .map((code) => code.trim())
+      .filter(Boolean),
     destination: params.get('to')?.toUpperCase() ?? null,
     destinationCountry: params.get('to_country')?.toUpperCase() ?? null,
   };
-  const restored = signal(!fromUrl.origin);
+  const restored = signal(!fromUrl.origins.length);
 
   effect(() => {
     if (restored() || !trip.airports().length) {

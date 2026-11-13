@@ -58,3 +58,100 @@
     transform: none;
   }
 }
+
+/* "Also fly from": under From and To, across the full width. */
+.extra-origins {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.extra-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.optional {
+  color: var(--color-text-muted);
+  font-weight: normal;
+}
+
+.extra-hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.chips,
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A chosen extra departure: same look as a selected option. */
+.chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-height);
+  padding-left: var(--space-3);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary-subtle);
+  font-weight: bold;
+}
+
+.chip-remove {
+  width: var(--control-height);
+  height: 100%;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+}
+
+.chip-remove:hover {
+  color: var(--color-danger);
+}
+
+/* A suggested nearby airport: one click adds it. */
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.suggestion:hover {
+  border-color: var(--color-primary);
+}
+
+.km {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+}
+
+.flag {
+  width: var(--space-6);
+  height: var(--space-4);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}

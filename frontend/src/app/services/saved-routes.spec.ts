@@ -1,14 +1,14 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { AIRPORTS, PT_ROUTES } from '../testing/network-fixtures';
-import { SAVED_ROUTES_KEY, SavedRoute, SavedRoutes } from './saved-routes';
+import { AIRPORTS, PT_ROUTES, answerRoutes } from '../testing/network-fixtures';
+import { SAVED_ROUTES_KEY, SAVED_ROUTES_KEY_V1, SavedRoute, SavedRoutes } from './saved-routes';
 import { TripSelection } from './trip-selection';
 
 const OPO_TO_MAD: SavedRoute = {
   id: 'OPO-MAD',
   originCountry: 'PT',
-  origin: 'OPO',
+  origins: ['OPO'],
   originName: 'OPO Airport',
   destinationCountry: 'ES',
   destination: 'MAD',
@@ -45,7 +45,10 @@ describe('SavedRoutes', () => {
   }
 
   beforeEach(() => localStorage.clear());
-  afterEach(() => http.verify());
+  afterEach(() => {
+    answerRoutes(http);
+    http.verify();
+  });
 
   it('has nothing to save until the trip is complete', () => {
     const saved = setUp();
@@ -97,7 +100,7 @@ describe('SavedRoutes', () => {
     http.expectOne((req) => req.url.endsWith('/network/routes')).flush(PT_ROUTES);
 
     expect(trip.searchSelection()).toEqual({
-      origin: 'OPO',
+      origins: ['OPO'],
       destination: 'MAD',
       destinationCountry: null,
     });
@@ -109,5 +112,27 @@ describe('SavedRoutes', () => {
     const saved = setUp();
     expect(saved.use({ ...OPO_TO_MAD, destination: 'XXX' })).toBe(false);
     expect(trip.origin()).toBeNull();
+  });
+
+  it('brings routes saved before several departures over to the new format', () => {
+    const { origins, ...v1 } = OPO_TO_MAD;
+    localStorage.setItem(SAVED_ROUTES_KEY_V1, JSON.stringify([{ ...v1, origin: origins[0] }]));
+
+    expect(setUp().routes()).toEqual([OPO_TO_MAD]);
+    expect(JSON.parse(localStorage.getItem(SAVED_ROUTES_KEY)!)).toEqual([OPO_TO_MAD]);
+  });
+
+  it('saves several departure airports as one route', () => {
+    const saved = setUp();
+    trip.applyRoute({ origins: ['OPO', 'LIS'], destination: 'AGP', destinationCountry: null });
+    http.expectOne((req) => req.url.endsWith('/network/routes')).flush(PT_ROUTES);
+
+    expect(saved.current()).toEqual(
+      expect.objectContaining({
+        id: 'OPO+LIS-AGP',
+        origins: ['OPO', 'LIS'],
+        originName: 'OPO Airport + LIS Airport',
+      }),
+    );
   });
 });
