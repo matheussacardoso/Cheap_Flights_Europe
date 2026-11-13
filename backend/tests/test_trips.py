@@ -1,0 +1,134 @@
+from datetime import date, datetime
+from unittest.mock import MagicMock
+
+import pytest
+from fastapi.testclient import TestClient
+from ryanair.types import Flight, Trip
+
+from app.schemas.flight import TripSearchParams
+
+URL = "/flights/trips"
+# 2026-12-03 is a Thursday.
+THU_TO_MON = {
+    "origin": "CGN",
+    "destination": "PMI",
+    "date_from": "2026-12-01",
+    "date_to": "2026-12-20",
+    "depart_day": "thursday",
+    "return_day": "monday",
+}
+
+
+def make_trip(outbound: date, inbound: date, out_price: float, in_price: float) -> Trip:
+    def flight(day: date, origin: str, destination: str, price: float) -> Flight:
+        return Flight(
+            departureTime=datetime.combine(day, datetime.min.time()).replace(hour=10),
+            flightNumber="FR 1234",
+            price=price,
+            currency="EUR",
+            origin=origin,
+            originFull=origin,
+            destination=destination,
+            destinationFull=destination,
+        )
+
+    return Trip(
+        totalPrice=out_price + in_price,
+        outbound=flight(outbound, "CGN", "PMI", out_price),
+        inbound=flight(inbound, "PMI", "CGN", in_price),
+    )
+
+
+def params(**overrides) -> TripSearchParams:
+    return TripSearchParams.model_validate(THU_TO_MON | overrides)
+
+
+def test_windows_are_every_departure_day_with_its_return_day() -> None:
+    assert params().windows() == [
+        (date(2026, 12, 3), date(2026, 12, 7)),
+        (date(2026, 12, 10), date(2026, 12, 14)),
+        (date(2026, 12, 17), date(2026, 12, 21)),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("depart", "back", "nights"),
+    [
+        ("thursday", "monday", 4),
+        ("wednesday", "monday", 5),
+        ("friday", "sunday", 2),
+        ("friday", "friday", 7),
+    ],
+)
+def test_nights_wrap_around_the_week(depart: str, back: str, nights: int) -> None:
+    assert params(depart_day=depart, return_day=back).nights == nights
+
+
+def test_returns_trips_cheapest_first(client: TestClient, ryanair_mock: MagicMock) -> None:
+    by_week = {
+        date(2026, 12, 3): [make_trip(date(2026, 12, 3), date(2026, 12, 7), 50, 40)],
+        date(2026, 12, 10): [make_trip(date(2026, 12, 10), date(2026, 12, 14), 20, 9.99)],
+        date(2026, 12, 17): [],
+    }
+    ryanair_mock.return_value.get_cheapest_return_flights.side_effect = (
+        lambda origin, out_from, out_to, in_from, in_to, **kwargs: by_week[out_from]
+    )
+
+    response = client.get(URL, params=THU_TO_MON)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [trip["totalPrice"] for trip in body] == [29.99, 90]
+    assert body[0]["outbound"]["departureTime"] == "2026-12-10T10:00:00"
+    assert body[0]["inbound"]["departureTime"] == "2026-12-14T10:00:00"
+    assert ryanair_mock.return_value.get_cheapest_return_flights.call_count == 3
+
+
+def test_queries_each_week_with_exact_dates(client: TestClient, ryanair_mock: MagicMock) -> None:
+    ryanair_mock.return_value.get_cheapest_return_flights.return_value = []
+
+    country = {k: v for k, v in THU_TO_MON.items() if k != "destination"}
+    client.get(URL, params=country | {"destination_country": "ES"})
+
+    calls = ryanair_mock.return_value.get_cheapest_return_flights.call_args_list
+    first = sorted(calls, key=lambda call: call.args[1])[0]
+    assert first.args == (
+        "CGN",
+        date(2026, 12, 3),
+        date(2026, 12, 3),
+        date(2026, 12, 7),
+        date(2026, 12, 7),
+    )
+    assert first.kwargs == {"destination_country": "es"}
+
+
+def test_total_price_is_rounded(client: TestClient, ryanair_mock: MagicMock) -> None:
+    trip = make_trip(date(2026, 12, 3), date(2026, 12, 7), 0.1, 0.2)  # 0.30000000000000004
+    ryanair_mock.return_value.get_cheapest_return_flights.return_value = [trip]
+
+    response = client.get(URL, params=THU_TO_MON | {"date_to": "2026-12-03"})
+
+    assert response.json()[0]["totalPrice"] == 0.3
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"depart_day": "thu"},
+        {"date_to": "2026-11-30"},
+        {"date_to": "2027-04-01"},  # longer than three months
+        {"date_from": "2026-12-04", "date_to": "2026-12-09"},  # no Thursday in it
+        {"destination_country": "ES"},  # together with destination
+    ],
+)
+def test_invalid_params_return_422(client: TestClient, overrides: dict) -> None:
+    assert client.get(URL, params=THU_TO_MON | overrides).status_code == 422
+
+
+def test_upstream_failure_returns_502(client: TestClient, ryanair_mock: MagicMock) -> None:
+    ryanair_mock.return_value.get_cheapest_return_flights.side_effect = ConnectionError("boom")
+
+    response = client.get(URL, params=THU_TO_MON)
+
+    assert response.status_code == 502
+    assert "boom" not in response.text
