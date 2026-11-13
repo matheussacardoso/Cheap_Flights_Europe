@@ -1,0 +1,31 @@
+<app-airport-search
+  class="from"
+  label="From"
+  placeholder="City, airport or code"
+  [options]="fromOptions()"
+  [value]="fromValue()"
+  [disabled]="!trip.airports().length"
+  (chosen)="chooseOrigin($event)"
+  (cleared)="trip.clearOrigin()"
+/>
+<button
+  type="button"
+  class="swap"
+  aria-label="Swap From and To"
+  title="Swap From and To"
+  [disabled]="!trip.canSwap()"
+  (click)="trip.swap()"
+>
+  <span aria-hidden="true">⇅</span>
+</button>
+<app-airport-search
+  class="to"
+  label="To"
+  placeholder="City, airport or country"
+  [options]="toOptions()"
+  [value]="toValue()"
+  [disabled]="!trip.origin() || trip.loadingRoutes()"
+  [hint]="toHint()"
+  (chosen)="chooseDestination($event)"
+  (cleared)="trip.clearDestination()"
+/>

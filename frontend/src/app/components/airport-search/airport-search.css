@@ -1,0 +1,123 @@
+:host {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* The flag, the input and the clear button look like one text box. */
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-height);
+  padding: 0 0 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+}
+
+.field:focus-within {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+
+.field.is-disabled {
+  border-color: var(--color-border-subtle);
+  background-color: var(--color-surface-muted);
+}
+
+input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+/* The wrapper shows the focus ring instead. */
+input:focus-visible {
+  outline: none;
+}
+
+.clear {
+  width: var(--control-height);
+  height: 100%;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+}
+
+.clear:hover {
+  color: var(--color-text);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: var(--z-dropdown);
+  /* About seven options; the rest scroll. */
+  max-height: calc(var(--control-height) * 8);
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1) 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.option,
+.empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.option {
+  cursor: pointer;
+}
+
+.option.is-active {
+  background-color: var(--color-primary-subtle);
+}
+
+.empty {
+  color: var(--color-text-muted);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  font-weight: bold;
+}
+
+.subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.flag {
+  flex-shrink: 0;
+  width: var(--space-6);
+  height: var(--space-4);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}

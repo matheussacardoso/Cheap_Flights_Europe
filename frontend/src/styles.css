@@ -11,15 +11,20 @@
   /* Sizing */
   --control-height: 40px;
   --content-max-width: 800px;
-  --card-min-width: 160px;
-  --card-min-height: 72px;
-  --field-max-width: 320px;
+  --field-min-width: 200px;
+  --nav-height: 56px;
+  --sidebar-width: 360px;
+  /* Phones: the map's height under the sidebar, and the most a sidebar list may take. */
+  --map-height-mobile: 70dvh;
+  --list-max-height-mobile: 40dvh;
+  /* Media queries can't read custom properties: the one layout breakpoint is 768px. */
 
   /* Typography */
   --font-family: Arial, Helvetica, sans-serif;
   --font-size-sm: 14px;
   --font-size-md: 16px;
   --font-size-lg: 24px;
+  --line-height-label: 1.25;
 
   /* Color (text colors meet WCAG AA 4.5:1 on white; borders meet 3:1) */
   --color-text: #1f1f1f;
@@ -32,14 +37,34 @@
   --color-primary-subtle: #e8eef9;
   --color-secondary: #5a6268;
   --color-on-color: #ffffff;
+  --color-on-color-hover: rgb(255 255 255 / 0.15);
   --color-disabled: #a0a0a0;
   --color-danger: #b52b27;
   --color-focus: #073590;
 
+  /* Map: Ryanair's countries are white, everything else recedes. Airport dots meet 3:1 on land. */
+  --color-map-sea: #eaf1f8;
+  --color-map-land: #ffffff;
+  --color-map-land-muted: #e3e3e3;
+  --color-map-border: #b3b3b3;
+  --color-map-airport: #2563c9;
+  --color-map-route: #6688cc;
+  /* Map strokes are SVG units drawn with non-scaling-stroke, so they are on-screen pixels. */
+  --map-stroke: 1;
+  --map-stroke-dot: 1.5;
+  --map-stroke-bold: 3;
+  --map-faded-opacity: 0.25;
+
   /* Shape */
   --radius-sm: 4px;
   --radius-md: 8px;
+  --radius-round: 50%;
   --shadow-card: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+  /* Focus and layering */
+  --focus-width: 2px;
+  --focus-offset: 2px;
+  --z-dropdown: 10;
 }
 
 /* Base */
@@ -51,7 +76,6 @@
 
 body {
   margin: 0;
-  padding: 0 var(--space-4);
   font-family: var(--font-family);
   font-size: var(--font-size-md);
   color: var(--color-text);
@@ -63,13 +87,14 @@ h1 {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
 }
 
 /* Layout */
 .container {
-  max-width: var(--content-max-width);
+  /* Keeps a side gutter on narrow screens. */
+  width: min(var(--content-max-width), 100% - 2 * var(--space-4));
   margin: var(--space-8) auto;
   padding: var(--space-6);
   border-radius: var(--radius-md);
@@ -86,6 +111,7 @@ h1 {
 
 label {
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-label);
   font-weight: bold;
 }
 

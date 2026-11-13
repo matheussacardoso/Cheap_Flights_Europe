@@ -1,8 +1,16 @@
 import { Routes } from '@angular/router';
-import { FlightSearchComponent } from './components/flight-search/flight-search';
 import { FlightResultsComponent } from './components/flight-results/flight-results';
+import { FlightSearchComponent } from './components/flight-search/flight-search';
+import { RoutesPageComponent } from './components/routes-page/routes-page';
 
 export const routes: Routes = [
-  { path: '', component: FlightSearchComponent },
-  { path: 'results', component: FlightResultsComponent }
+  { path: '', component: RoutesPageComponent, title: 'Routes · Cheap Flights Europe' },
+  { path: 'search', component: FlightSearchComponent, title: 'Search · Cheap Flights Europe' },
+  {
+    path: 'search/results',
+    component: FlightResultsComponent,
+    title: 'Results · Cheap Flights Europe',
+  },
+  { path: 'results', redirectTo: 'search/results' },
+  { path: '**', redirectTo: '' },
 ];

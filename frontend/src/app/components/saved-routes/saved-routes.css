@@ -1,0 +1,82 @@
+.saved-routes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.section-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.route-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A route is one pill: the route button and its remove button share the border. */
+.route {
+  display: flex;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+}
+
+.route:hover {
+  border-color: var(--color-primary);
+}
+
+.route.is-current {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-subtle);
+}
+
+.route-button,
+.remove-button {
+  display: flex;
+  align-items: center;
+  height: var(--control-height);
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.route-button {
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  font-weight: bold;
+}
+
+.route-button[aria-disabled='true'] {
+  cursor: progress;
+}
+
+.remove-button {
+  justify-content: center;
+  width: var(--control-height);
+  border-left: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+}
+
+.remove-button:hover {
+  color: var(--color-danger);
+}
+
+.flag {
+  width: var(--space-6);
+  height: var(--space-4);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.arrow {
+  color: var(--color-text-muted);
+  font-weight: normal;
+}

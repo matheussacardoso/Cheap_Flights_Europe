@@ -1,0 +1,31 @@
+<header class="nav-bar">
+  <a class="brand" routerLink="/">
+    <span aria-hidden="true">✈</span>
+    Cheap Flights Europe
+  </a>
+  <nav aria-label="Main">
+    <ul class="links">
+      <li>
+        <a
+          routerLink="/"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          ariaCurrentWhenActive="page"
+          queryParamsHandling="preserve"
+        >
+          Routes
+        </a>
+      </li>
+      <li>
+        <a
+          routerLink="/search"
+          routerLinkActive="is-active"
+          ariaCurrentWhenActive="page"
+          queryParamsHandling="preserve"
+        >
+          Search
+        </a>
+      </li>
+    </ul>
+  </nav>
+</header>

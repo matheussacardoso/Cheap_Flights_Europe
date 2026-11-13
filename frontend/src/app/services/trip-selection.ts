@@ -7,35 +7,44 @@ export interface Country {
   airports: Airport[];
 }
 
-/** The search parameters a completed selection maps to. */
+/**
+ * A trip: an origin airport and either a destination airport or "any airport" in a destination
+ * country. It is also the shape of the search parameters the trip maps to.
+ */
 export interface TripSearchSelection {
   origin: string | null;
   destination: string | null;
   destinationCountry: string | null;
 }
 
-/** Destination value meaning "any airport in the destination country". */
-export const ANY_AIRPORT = 'ANY';
+/** "Name (CODE)", or "Name, City (CODE)" when the airport isn't named after its city. */
+export function airportLabel(airport: Airport): string {
+  return airport.city === airport.name
+    ? `${airport.name} (${airport.code})`
+    : `${airport.name}, ${airport.city} (${airport.code})`;
+}
 
 /**
- * Shared state for choosing a trip: origin country → destination country → origin airport →
- * destination airport. Every view of the picker (cards today, a map later) reads and writes
- * this store, so they always stay in sync. Choosing a step clears the steps after it.
+ * Shared state for choosing a trip, airport first: the origin airport, then a destination airport
+ * or "any airport in a country". Every view (the From/To boxes, the destination list, the map)
+ * reads and writes this store, so they always stay in sync. Changing the origin clears the
+ * destination.
  */
 @Injectable({ providedIn: 'root' })
 export class TripSelection {
   private network = inject(NetworkService);
 
   readonly airports = signal<Airport[]>([]);
+  /** Routes from every airport in the origin's country (the API serves them per country). */
   readonly routes = signal<Route[]>([]);
   readonly loadingAirports = signal(false);
   readonly loadingRoutes = signal(false);
   readonly error = signal('');
 
-  readonly originCountry = signal<string | null>(null);
+  readonly origin = signal<string | null>(null);
+  readonly destination = signal<string | null>(null);
+  /** Set only for "any airport in this country"; never together with `destination`. */
   readonly destinationCountry = signal<string | null>(null);
-  readonly originAirport = signal<string | null>(null);
-  readonly destinationAirport = signal<string | null>(null);
 
   readonly airportsByCode = computed(
     () => new Map(this.airports().map((airport) => [airport.code, airport])),
@@ -58,50 +67,51 @@ export class TripSelection {
     return [...byCode.values()].sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  /** Countries with a direct route from any airport in the origin country. */
-  readonly reachableCountries = computed(() => {
+  readonly originAirport = computed(() => this.airportsByCode().get(this.origin() ?? '') ?? null);
+  readonly originCountry = computed(() => this.originAirport()?.countryCode ?? null);
+  readonly destinationAirport = computed(
+    () => this.airportsByCode().get(this.destination() ?? '') ?? null,
+  );
+
+  /** Airports with a direct flight from the origin, by name (as listed). */
+  readonly destinations = computed<Airport[]>(() => {
+    const origin = this.origin();
     const byCode = this.airportsByCode();
-    return new Set(
-      this.routes()
-        .map((route) => byCode.get(route.destination)?.countryCode)
-        .filter((code): code is string => !!code),
-    );
+    return this.routes()
+      .filter((route) => route.origin === origin)
+      .map((route) => byCode.get(route.destination))
+      .filter((airport): airport is Airport => !!airport)
+      .sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  /** Origin airports with at least one direct route to the destination country. */
-  readonly originAirportsServingDestination = computed(() => {
-    const destination = this.destinationCountry();
-    const byCode = this.airportsByCode();
-    return new Set(
-      this.routes()
-        .filter((route) => byCode.get(route.destination)?.countryCode === destination)
-        .map((route) => route.origin),
-    );
+  readonly destinationCodes = computed(
+    () => new Set(this.destinations().map((airport) => airport.code)),
+  );
+
+  /** Countries with at least one direct flight from the origin, by name. */
+  readonly reachableCountries = computed<Country[]>(() => {
+    const byCode = new Map<string, Country>();
+    for (const airport of this.destinations()) {
+      const country = byCode.get(airport.countryCode) ?? {
+        code: airport.countryCode,
+        name: airport.countryName,
+        airports: [],
+      };
+      country.airports.push(airport);
+      byCode.set(airport.countryCode, country);
+    }
+    return [...byCode.values()].sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  /** Airports in the destination country reachable from the origin airport. */
-  readonly reachableDestinationAirports = computed(() => {
-    const origin = this.originAirport();
-    const destination = this.destinationCountry();
-    const byCode = this.airportsByCode();
-    return new Set(
-      this.routes()
-        .filter(
-          (route) =>
-            route.origin === origin && byCode.get(route.destination)?.countryCode === destination,
-        )
-        .map((route) => route.destination),
-    );
-  });
+  readonly searchSelection = computed<TripSearchSelection>(() => ({
+    origin: this.origin(),
+    destination: this.destination(),
+    destinationCountry: this.destinationCountry(),
+  }));
 
-  readonly searchSelection = computed<TripSearchSelection>(() => {
-    const destination = this.destinationAirport();
-    return {
-      origin: this.originAirport(),
-      destination: destination && destination !== ANY_AIRPORT ? destination : null,
-      destinationCountry: destination === ANY_AIRPORT ? this.destinationCountry() : null,
-    };
-  });
+  readonly isComplete = computed(
+    () => !!this.origin() && (!!this.destination() || !!this.destinationCountry()),
+  );
 
   loadAirports(): void {
     if (this.airports().length || this.loadingAirports()) {
@@ -121,65 +131,131 @@ export class TripSelection {
     });
   }
 
-  selectOriginCountry(code: string): void {
-    if (code === this.originCountry()) {
+  selectOrigin(code: string): void {
+    const airport = this.airportsByCode().get(code);
+    if (!airport || code === this.origin()) {
       return;
     }
-    this.originCountry.set(code);
+    const previousCountry = this.originCountry();
+    this.origin.set(code);
+    this.clearDestination();
+    if (airport.countryCode !== previousCountry) {
+      this.routes.set([]);
+      this.loadRoutes(airport.countryCode);
+    }
+  }
+
+  selectDestination(code: string): void {
+    this.destination.set(code);
     this.destinationCountry.set(null);
-    this.originAirport.set(null);
-    this.destinationAirport.set(null);
-    this.routes.set([]);
-    this.loadRoutes(code);
   }
 
+  /** "Any airport in this country". */
   selectDestinationCountry(code: string): void {
-    if (code === this.destinationCountry()) {
-      return;
-    }
+    this.destination.set(null);
     this.destinationCountry.set(code);
-    this.originAirport.set(null);
-    this.destinationAirport.set(null);
   }
 
-  selectOriginAirport(code: string): void {
-    if (code === this.originAirport()) {
+  clearOrigin(): void {
+    this.origin.set(null);
+    this.clearDestination();
+    this.routes.set([]);
+    this.loadingRoutes.set(false);
+  }
+
+  clearDestination(): void {
+    this.destination.set(null);
+    this.destinationCountry.set(null);
+  }
+
+  /** Can the trip be reversed? Only a single destination airport can become the origin. */
+  readonly canSwap = computed(() => !!this.origin() && !!this.destination());
+
+  /**
+   * Flies the trip the other way. The return route is checked once its routes load: if it
+   * doesn't exist, the destination is cleared.
+   */
+  swap(): void {
+    const origin = this.origin();
+    const destination = this.destination();
+    if (!origin || !destination) {
       return;
     }
-    this.originAirport.set(code);
-    this.destinationAirport.set(null);
+    this.selectOrigin(destination);
+    this.selectDestination(origin);
+    this.dropUnservedDestination();
   }
 
-  selectDestinationAirport(code: string): void {
-    this.destinationAirport.set(code);
+  /**
+   * Fills the whole trip at once (a saved route, a shared link). Returns false, and changes
+   * nothing, when the airports aren't loaded yet or are no longer in Ryanair's network. A
+   * destination without a direct flight is dropped once the routes load.
+   */
+  applyRoute(route: TripSearchSelection): boolean {
+    const byCode = this.airportsByCode();
+    const known =
+      !!route.origin &&
+      byCode.has(route.origin) &&
+      (!route.destination || byCode.has(route.destination)) &&
+      (!route.destinationCountry ||
+        this.countries().some((country) => country.code === route.destinationCountry));
+    if (!known) {
+      return false;
+    }
+    this.selectOrigin(route.origin!);
+    if (route.destination) {
+      this.selectDestination(route.destination);
+    } else if (route.destinationCountry) {
+      this.selectDestinationCountry(route.destinationCountry);
+    } else {
+      this.clearDestination();
+    }
+    this.dropUnservedDestination();
+    return true;
   }
 
   retry(): void {
-    const origin = this.originCountry();
+    const country = this.originCountry();
     if (!this.airports().length) {
       this.loadAirports();
-    } else if (origin) {
-      this.loadRoutes(origin);
+    } else if (country) {
+      this.loadRoutes(country);
     }
   }
 
-  private loadRoutes(originCountry: string): void {
+  private loadRoutes(country: string): void {
     this.loadingRoutes.set(true);
     this.error.set('');
-    this.network.getRoutes(originCountry).subscribe({
+    this.network.getRoutes(country).subscribe({
       next: (routes) => {
-        // Ignore a late response if the user already picked another origin country.
-        if (this.originCountry() === originCountry) {
+        // Ignore a late response if the user already picked an origin in another country.
+        if (this.originCountry() === country) {
           this.routes.set(routes);
           this.loadingRoutes.set(false);
+          this.dropUnservedDestination();
         }
       },
       error: () => {
-        if (this.originCountry() === originCountry) {
+        if (this.originCountry() === country) {
           this.error.set('Could not load routes. Check that the backend is running.');
           this.loadingRoutes.set(false);
         }
       },
     });
+  }
+
+  /** Once routes are known, a destination without a direct flight from the origin is cleared. */
+  private dropUnservedDestination(): void {
+    if (this.loadingRoutes()) {
+      return;
+    }
+    const destination = this.destination();
+    const country = this.destinationCountry();
+    const servedAirport = !destination || this.destinationCodes().has(destination);
+    const servedCountry =
+      !country || this.reachableCountries().some((reachable) => reachable.code === country);
+    if (!servedAirport || !servedCountry) {
+      this.clearDestination();
+    }
   }
 }

@@ -1,0 +1,153 @@
+/* Sidebar beside a map that fills the rest of the screen under the nav bar. */
+.routes-page {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  height: calc(100dvh - var(--nav-height));
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-4);
+  overflow-y: auto;
+  border-right: 1px solid var(--color-border-subtle);
+  background-color: var(--color-surface);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.section-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.count {
+  color: var(--color-text-muted);
+  font-weight: normal;
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+/* The chosen trip */
+.route-card {
+  padding: var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary-subtle);
+}
+
+.route-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.actions .btn {
+  gap: var(--space-2);
+}
+
+.btn-outline {
+  border: 1px solid var(--color-primary);
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+}
+
+/* Direct destinations: a compact list, the keyboard alternative to the map. */
+.destinations {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.destination {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.destination:hover {
+  background-color: var(--color-surface-muted);
+}
+
+.destination[aria-pressed='true'] {
+  background-color: var(--color-primary-subtle);
+  box-shadow: inset var(--space-1) 0 0 var(--color-primary);
+}
+
+.flag {
+  grid-row: span 2;
+  width: var(--space-6);
+  height: var(--space-4);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.name {
+  font-weight: bold;
+}
+
+.meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.map-area {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Phones: the sidebar on top, then a tall map; the page scrolls. */
+@media (max-width: 768px) {
+  .routes-page {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .sidebar {
+    overflow-y: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  /* Keep the map close: long destination lists scroll on their own. */
+  .destinations {
+    max-height: var(--list-max-height-mobile);
+    overflow-y: auto;
+  }
+
+  .map-area {
+    height: var(--map-height-mobile);
+  }
+}

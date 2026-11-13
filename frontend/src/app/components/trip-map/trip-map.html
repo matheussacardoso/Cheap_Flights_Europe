@@ -1,0 +1,140 @@
+@if (error()) {
+  <div class="status" role="alert">
+    <p class="error">{{ error() }}</p>
+    <button type="button" class="btn btn-secondary" (click)="load()">Try again</button>
+  </div>
+} @else if (loading()) {
+  <p class="status muted" role="status">Loading map…</p>
+} @else {
+  <!-- Before the SVG in Tab order, so keyboard users reach zoom without passing every dot. -->
+  <div class="controls" role="group" aria-label="Map zoom">
+    <button
+      type="button"
+      class="control"
+      aria-label="Zoom in"
+      title="Zoom in"
+      [disabled]="!canZoomIn()"
+      (click)="zoomIn()"
+    >
+      <span aria-hidden="true">+</span>
+    </button>
+    <button
+      type="button"
+      class="control"
+      aria-label="Zoom out"
+      title="Zoom out"
+      [disabled]="!canZoomOut()"
+      (click)="zoomOut()"
+    >
+      <span aria-hidden="true">−</span>
+    </button>
+    <button
+      type="button"
+      class="control"
+      aria-label="Reset view"
+      title="Reset view"
+      (click)="resetView()"
+    >
+      <span aria-hidden="true">⤢</span>
+    </button>
+  </div>
+
+  <ul class="legend" aria-label="Map legend">
+    @if (trip.origin()) {
+      <li><span class="dot is-origin"></span>Your trip</li>
+      <li><span class="dot is-available"></span>Direct flight</li>
+      <li><span class="dot is-unavailable"></span>No direct flight</li>
+    } @else {
+      <li><span class="dot is-available"></span>Ryanair airport: click to fly from it</li>
+    }
+  </ul>
+
+  <svg
+    #svg
+    [attr.viewBox]="viewBox()"
+    role="group"
+    aria-label="Map of Ryanair's airports and direct flights. Drag to move, scroll to zoom."
+  >
+    <defs>
+      <marker
+        id="trip-map-arrow"
+        viewBox="0 0 10 10"
+        refX="16"
+        refY="5"
+        markerUnits="userSpaceOnUse"
+        [attr.markerWidth]="arrowSize()"
+        [attr.markerHeight]="arrowSize()"
+        orient="auto"
+      >
+        <path class="arrow" d="M 0 0 L 10 5 L 0 10 z" />
+      </marker>
+    </defs>
+
+    <rect class="sea" width="100%" height="100%" />
+
+    <g class="viewport" [attr.transform]="transform().toString()">
+      <g class="countries" aria-hidden="true">
+        @for (country of countries(); track $index) {
+          <path [attr.class]="'country is-' + country.status" [attr.d]="country.d" />
+        }
+      </g>
+
+      <g class="labels" aria-hidden="true">
+        @for (country of countries(); track $index) {
+          @if (showLabel(country)) {
+            <text
+              class="label"
+              [attr.x]="country.labelX"
+              [attr.y]="country.labelY"
+              [attr.font-size]="labelSize()"
+              [attr.stroke-width]="labelSize() / 4"
+            >
+              {{ country.name }}
+            </text>
+          }
+        }
+      </g>
+
+      <g class="flights" [class.has-chosen]="hasChosenFlight()" aria-hidden="true">
+        @for (flight of flights(); track flight.code) {
+          <path
+            class="flight"
+            [class.is-chosen]="flight.chosen"
+            [attr.d]="flight.d"
+            [attr.marker-end]="flight.chosen ? 'url(#trip-map-arrow)' : null"
+          />
+        }
+      </g>
+
+      <g class="airports">
+        @for (airport of airports(); track airport.code) {
+          <g
+            [attr.class]="'airport is-' + airport.status"
+            [attr.role]="airport.selectable ? 'button' : null"
+            [attr.tabindex]="airport.selectable ? 0 : null"
+            [attr.aria-label]="airport.selectable ? airport.label : null"
+            (click)="select(airport)"
+            (keydown.enter)="select(airport, $event)"
+            (keydown.space)="select(airport, $event)"
+          >
+            <title>{{ airportTitle(airport) }}</title>
+            <circle [attr.cx]="airport.x" [attr.cy]="airport.y" [attr.r]="dotRadius()" />
+            @if (airport.namePlacement) {
+              <text
+                class="airport-name"
+                [attr.text-anchor]="nameAnchor(airport)"
+                [attr.x]="nameX(airport)"
+                [attr.y]="nameY(airport)"
+                [attr.font-size]="labelSize()"
+                [attr.stroke-width]="labelSize() / 4"
+                aria-hidden="true"
+              >
+                {{ airport.name }}
+              </text>
+            }
+          </g>
+        }
+      </g>
+    </g>
+  </svg>
+}

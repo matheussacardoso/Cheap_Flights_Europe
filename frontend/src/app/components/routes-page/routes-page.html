@@ -1,0 +1,77 @@
+<div class="routes-page">
+  <aside class="sidebar" aria-label="Find a route">
+    <section class="section">
+      <h1 class="title">Where can you fly direct?</h1>
+      <app-trip-fields />
+      @if (trip.error()) {
+        <div class="status" role="alert">
+          <p class="error">{{ trip.error() }}</p>
+          <button type="button" class="btn btn-secondary" (click)="trip.retry()">Try again</button>
+        </div>
+      } @else if (trip.loadingAirports()) {
+        <p class="muted" role="status">Loading airports…</p>
+      }
+    </section>
+
+    @if (savedRoutes.current(); as route) {
+      <section class="section route-card" aria-labelledby="route-title">
+        <h2 id="route-title" class="route-title">
+          {{ route.originName }} <span aria-hidden="true">→</span
+          ><span class="visually-hidden"> to </span> {{ route.destinationName }}
+        </h2>
+        <div class="actions">
+          <a class="btn btn-primary" routerLink="/search" [queryParams]="searchParams()">
+            Search prices <span aria-hidden="true">→</span>
+          </a>
+          <button type="button" class="btn btn-outline" (click)="savedRoutes.toggleCurrent()">
+            <span aria-hidden="true">{{ savedRoutes.isCurrentSaved() ? '★' : '☆' }}</span>
+            {{ savedRoutes.isCurrentSaved() ? 'Saved' : 'Save route' }}
+          </button>
+        </div>
+      </section>
+    }
+
+    @if (trip.originAirport(); as origin) {
+      <section class="section" aria-labelledby="destinations-title">
+        <h2 id="destinations-title" class="section-title">
+          Direct flights from {{ origin.name }}
+          @if (!trip.loadingRoutes()) {
+            <span class="count">({{ trip.destinations().length }})</span>
+          }
+        </h2>
+        @if (trip.loadingRoutes()) {
+          <p class="muted" role="status">Loading direct flights…</p>
+        } @else {
+          <ul class="destinations">
+            @for (airport of trip.destinations(); track airport.code) {
+              <li>
+                <button
+                  type="button"
+                  class="destination"
+                  [attr.aria-pressed]="trip.destination() === airport.code"
+                  (click)="trip.selectDestination(airport.code)"
+                >
+                  <img
+                    class="flag"
+                    [src]="'flags/' + airport.countryCode.toLowerCase() + '.svg'"
+                    alt=""
+                    width="24"
+                    height="16"
+                  />
+                  <span class="name">{{ airport.name }}</span>
+                  <span class="meta">{{ airport.countryName }} · {{ airport.code }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    <app-saved-routes class="section" />
+  </aside>
+
+  <section class="map-area" aria-label="Route map">
+    <app-trip-map />
+  </section>
+</div>
