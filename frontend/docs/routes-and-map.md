@@ -13,7 +13,7 @@ The general design system (8pt spacing, tokens, accessibility) is in the root `C
   | Link   | URL       | Active on                    |
   | ------ | --------- | ---------------------------- |
   | Routes | `/`       | `/` only (exact match)       |
-  | Search | `/search` | `/search` and `/search/results` |
+  | Search | `/search` | `/search`, `/search/results` and `/search/trips` |
 
 - The active link is a solid white tab with primary text, and has `aria-current="page"`. A color change alone is not enough.
 - Both links keep the query params (`queryParamsHandling="preserve"`), so the chosen route follows you between pages.
@@ -36,7 +36,45 @@ New sidebar features (airline or country filters, for example) go in as a new se
 
 ### Search (`/search`, `components/flight-search/`)
 
-A centred card (`.container`): saved routes, then the From ⇄ To boxes in a row, then dates, currency and **Search flights**. Results are shown at `/search/results`.
+A centred card (`.container`). From top to bottom:
+
+1. Saved routes.
+2. The From ⇄ To boxes, in a row.
+3. **Trip:** a segmented control, *Round trip on set days* (the default) or *One way*. It is made of native radio buttons.
+4. **Days** (round trip only):
+   - preset toggle buttons, **Thu → Mon**, **Wed → Mon**, **Fri → Tue** and **Fri → Sun**, with `aria-pressed`;
+   - **Leave on** and **Come back on** selects;
+   - a live summary, e.g. "4 nights · 13 departures to compare".
+5. Dates and currency:
+   - **Round trip:** **First departure** and **Last departure** are dropdowns, not free date pickers, so only dates that match the chosen days can be picked (see *Round-trip dates* below).
+   - **One way:** native date pickers, **Departure from** and an optional **Departure until**.
+6. The submit button: **Find the cheapest dates** (round trip) or **Search flights** (one way).
+
+#### Round-trip dates
+
+- **Each option is one whole trip**, e.g. "Thu 3 Dec → Mon 7 Dec 2026". The return date is the first chosen return weekday after departure.
+- **First departure** lists every departure weekday from today for 52 weeks (`FIRST_DEPARTURE_WEEKS`). Today counts if it is the right weekday.
+- **Last departure** lists the same weekday from the first departure, at most 92 days later (14 choices).
+- **Layout:** the two date fields use the wider minimum width (`--field-min-width-wide`), so a whole trip fits in the box.
+- **Defaults:** the next departure day, and 8 weeks after it (`DEFAULT_PERIOD_WEEKS`), so 9 trips to compare.
+- **Changing the days** (a preset or the selects) moves both dates to the new weekday in the same week, and the period keeps its number of weeks. For example, Thu 19 Nov–Thu 14 Jan becomes Fri 20 Nov–Fri 15 Jan.
+- **Changing the first departure** keeps the last one if it still fits (same weekday, not earlier, within 92 days). Otherwise the last one moves to 8 weeks after the new first.
+- The date maths lives in `services/trip-period.ts`. Today comes from the `TODAY` token, so tests can fix it.
+
+#### Loading
+
+- **While a search runs**, the loading indicator covers the form with a translucent layer (`--color-overlay`), and the form is `inert`, so it can't be changed or sent twice. The indicator is sticky, so it stays in view however far the page is scrolled.
+- **It says what is running:**
+  - Round trip: "Finding the cheapest dates", then "Comparing 9 Thursday → Monday trips from Cologne to Palma de Mallorca. This takes a few seconds."
+  - One way: "Searching flights", then "Looking for flights from X to Y."
+- The submit button reads "Searching…" and has `aria-busy`.
+
+Results:
+
+- One way: `/search/results`.
+- Round trip: `/search/trips`, every trip cheapest first. The cheapest row is highlighted with a "Cheapest" badge.
+
+The full requirements are in `docs/requirements.md`.
 
 ## 3. Choosing a trip
 
@@ -117,7 +155,20 @@ An ARIA 1.2 combobox: `role="combobox"` with `aria-expanded`, `aria-controls` an
 - Countries, lines and names are `aria-hidden`.
 - Everything the map does can also be done from the sidebar (the boxes and the destination list).
 
-## 5. URL
+## 5. Loading indicator (`components/loading-indicator/`)
+
+Use it for every wait the user can notice, instead of plain "Loading…" text.
+
+- **Inputs:** `title` (what is happening, e.g. "Finding the cheapest dates"), an optional `detail` (what exactly, and how long), and `compact`.
+- **Full version** (searches, the map):
+  - a card with a spinner, the title and the detail;
+  - an indeterminate progress bar. The API gives no real progress, so it never fakes a percentage.
+- **Compact version** (lists in the sidebar): one muted line with a small spinner, e.g. "Loading airports…" or "Loading direct flights…".
+- It is a `role="status"` polite live region, so screen readers announce it.
+- With `prefers-reduced-motion`, the spinner and the bar pulse slowly instead of moving.
+- Speeds come from `--loading-spin-duration` and `--loading-slide-duration`.
+
+## 6. URL
 
 `syncTripWithUrl()` (`services/trip-url.ts`) keeps the trip in the query params, on both pages:
 
@@ -127,13 +178,13 @@ An ARIA 1.2 combobox: `role="combobox"` with `aria-expanded`, `aria-controls` an
 
 On load the URL wins, once airports arrive. After that, every change replaces the URL (`replaceUrl`, so it doesn't add history entries). Reloading or sharing a link keeps the route. **Search prices** is just a link to `/search` with these params.
 
-## 6. Saved routes
+## 7. Saved routes
 
 - **☆ Save route** appears once the trip is complete (on the route card and on the Search page) and toggles to **★ Saved**.
 - Saved routes are kept in `localStorage` in this browser only; there are no accounts. Clicking a saved route makes it the current trip, and **×** removes it.
 - The result is announced in a polite live region: "… selected.", "… is no longer served by Ryanair." or "… removed from saved routes."
 
-## 7. Tokens and layout constants
+## 8. Tokens and layout constants
 
 Added for these screens, in `src/styles.css`:
 
@@ -147,6 +198,8 @@ Added for these screens, in `src/styles.css`:
 | `--radius-round`                       | Circles (swap button, legend dots)                         |
 | `--focus-width`, `--focus-offset`, `--z-dropdown` | Focus ring, and the combobox popup layer        |
 | `--line-height-label`, `--color-on-color-hover` | Label line height, and hover on the nav bar       |
+| `--z-overlay`, `--color-overlay`       | The loading cover over a busy form                         |
+| `--loading-spin-duration`, `--loading-slide-duration` | Loading animation speeds                    |
 
 - **Breakpoint:** one layout breakpoint, `768px`. Media queries can't read custom properties, so it is written literally.
 - **Below 768px:**

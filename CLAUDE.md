@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Finds cheap, direct, low-cost flights in Europe for long-weekend trips. The root `README.md` describes the product vision: multi-airline search, Thu–Mon and Fri–Tue presets, time windows and price caps. **None of that is built yet.** Today the app only searches Ryanair's cheapest flights through `ryanair-py`.
+Finds cheap, direct, low-cost flights in Europe for long-weekend trips. The root `README.md` describes the product vision: multi-airline search, Thu–Mon and Fri–Tue presets, time windows and price caps. `docs/requirements.md` lists the requirements and what is built.
+
+Today the app only covers Ryanair, through `ryanair-py`. It has one-way searches, and round trips on set weekdays (e.g. every Thursday to Monday in a period). Multi-airline search, time windows and price caps are not built yet.
 
 - `backend/`: FastAPI service (Python ≥ 3.12)
 - `frontend/`: Angular 22 single-page app (standalone components, zoneless, Vitest)
@@ -48,6 +50,8 @@ npm run build:map                             # regenerate public/maps/europe.js
 - Routes stay thin. They don't catch exceptions or talk to SDKs directly. Services raise domain exceptions, and the handlers in `core/exceptions.py` turn them into HTTP responses.
 - External data has two sources:
   - Fares come from `ryanair-py`, which is sync, through `FlightService` and `/flights/*`.
+    - `/flights/cheapest` returns one-way fares.
+    - `/flights/trips` returns round trips on set weekdays. It makes one round-trip query per week in the period (at most 92 days), runs them on a small thread pool inside the sync service, and returns the trips cheapest first.
   - The route network (active airports and the direct routes per airport) comes from Ryanair's unofficial public website API, through `NetworkService` and `/network/*`. It is async, uses the shared `httpx.AsyncClient` created in the `lifespan`, and keeps an in-memory TTL cache per worker. Because that API is unofficial, any upstream or parsing failure becomes a 502.
 - Ryanair's fare API only matches **lowercase** country codes (`es`, not `ES`). The API accepts uppercase codes, and `FlightService` lowercases them.
 
@@ -87,7 +91,7 @@ npm run build:map                             # regenerate public/maps/europe.js
 - Angular standalone components (no NgModules). Each feature is a component folder in `src/app/components/`, HTTP calls live in services in `src/app/services/`, and routes are registered in `app.routes.ts`.
 - The app is **zoneless** (`provideZonelessChangeDetection()`), so UI updates must come from signals or template events, not zone.js-triggered change detection.
 - **Routes, map and nav bar UI rules:** see `frontend/docs/routes-and-map.md`. Update it when you change how these screens behave.
-- **Pages:** a nav bar (`components/nav-bar/`) links two pages. **Routes** (`/`, `components/routes-page/`) is a full-screen map with a sidebar. **Search** (`/search`, `components/flight-search/`) has the dates and the price search, and its results are at `/search/results`.
+- **Pages:** a nav bar (`components/nav-bar/`) links two pages. **Routes** (`/`, `components/routes-page/`) is a full-screen map with a sidebar. **Search** (`/search`, `components/flight-search/`) has the dates and the price search. One-way results are at `/search/results`, and round trips on set weekdays at `/search/trips` (`components/trip-results/`). Weekday presets and the period maths are in `services/trip-period.ts`.
 - **Trip state:** `TripSelection` (`services/trip-selection.ts`) is the single source of truth for the trip, airport first: `origin`, then either `destination` (an airport) or `destinationCountry` ("any airport in a country", which maps to a `destination_country` search).
   - It's a signals store. Routes load per origin country, and `destinations` and `reachableCountries` are computed from them. Changing the origin clears the destination. Once routes load, a destination without a direct flight is dropped.
   - Every view reads and writes this store, not its own state: the From/To boxes (`components/trip-fields/`), the destination list and the map.

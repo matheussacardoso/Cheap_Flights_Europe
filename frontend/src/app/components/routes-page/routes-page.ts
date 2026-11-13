@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SavedRoutes } from '../../services/saved-routes';
 import { tripQueryParams, syncTripWithUrl } from '../../services/trip-url';
 import { TripSelection } from '../../services/trip-selection';
+import { LoadingIndicatorComponent } from '../loading-indicator/loading-indicator';
 import { SavedRoutesComponent } from '../saved-routes/saved-routes';
 import { TripFieldsComponent } from '../trip-fields/trip-fields';
 import { TripMapComponent } from '../trip-map/trip-map';
@@ -14,7 +15,13 @@ import { TripMapComponent } from '../trip-map/trip-map';
 @Component({
   selector: 'app-routes-page',
   standalone: true,
-  imports: [RouterLink, SavedRoutesComponent, TripFieldsComponent, TripMapComponent],
+  imports: [
+    LoadingIndicatorComponent,
+    RouterLink,
+    SavedRoutesComponent,
+    TripFieldsComponent,
+    TripMapComponent,
+  ],
   templateUrl: './routes-page.html',
   styleUrl: './routes-page.css',
 })

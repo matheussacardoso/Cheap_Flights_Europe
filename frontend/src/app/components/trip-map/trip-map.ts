@@ -18,6 +18,7 @@ import { ZoomBehavior, ZoomTransform, zoom, zoomIdentity } from 'd3-zoom';
 import { Airport } from '../../services/network';
 import { CountryShape, MapDataService } from '../../services/map-data';
 import { TripSelection, airportLabel } from '../../services/trip-selection';
+import { LoadingIndicatorComponent } from '../loading-indicator/loading-indicator';
 
 /*
  * The SVG's viewBox matches the size of the map on screen, so before zooming one user unit is
@@ -100,6 +101,7 @@ interface Zoomer {
 @Component({
   selector: 'app-trip-map',
   standalone: true,
+  imports: [LoadingIndicatorComponent],
   templateUrl: './trip-map.html',
   styleUrl: './trip-map.css',
 })
