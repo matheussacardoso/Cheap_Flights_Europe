@@ -2,24 +2,32 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import flights, health
+from app.api.routes import flights, health, network
 from app.core.config import Settings, get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
 from app.core.middleware import request_context_middleware
+from app.services.network_service import NetworkService
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    # Open shared resources here (DB pools, Redis, HTTP clients) and store them on app.state;
-    # close them after `yield`. ryanair-py keeps no long-lived connection, so nothing to open yet.
-    logger.info("Starting up", extra={"environment": get_settings().environment})
-    yield
+    # Shared resources are opened once here, stored on app.state and closed after `yield`.
+    settings: Settings = app.state.settings
+    logger.info("Starting up", extra={"environment": settings.environment})
+    async with httpx.AsyncClient(
+        base_url=settings.ryanair_web_api_url,
+        timeout=settings.upstream_timeout_seconds,
+        headers={"User-Agent": "Mozilla/5.0 (compatible; cheap-flights-backend)"},
+    ) as client:
+        app.state.network_service = NetworkService(client, settings.network_cache_ttl_seconds)
+        yield
     logger.info("Shutting down")
 
 
@@ -41,6 +49,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url="/openapi.json" if docs_enabled else None,
     )
 
+    app.state.settings = settings
+
     app.middleware("http")(request_context_middleware)
     app.add_middleware(
         CORSMiddleware,
@@ -54,6 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_exception_handlers(app)
     app.include_router(health.router)
     app.include_router(flights.router)
+    app.include_router(network.router)
     return app
 
 

@@ -1,0 +1,73 @@
+:host {
+  display: block;
+}
+
+.option-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--card-min-height);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option-card:hover {
+  border-color: var(--color-primary);
+}
+
+.is-highlighted {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-subtle);
+}
+
+/* Inset shadow (not outline) so the selected ring survives the global focus outline. */
+.is-selected {
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-subtle);
+}
+
+.is-unavailable {
+  border-style: dashed;
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.is-unavailable:hover {
+  border-color: var(--color-border-subtle);
+}
+
+.is-unavailable .flag {
+  opacity: 0.5;
+}
+
+.flag {
+  flex-shrink: 0;
+  width: var(--space-8);
+  height: var(--space-6);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.title {
+  font-weight: bold;
+}
+
+.subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

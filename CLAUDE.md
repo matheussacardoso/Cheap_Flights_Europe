@@ -45,6 +45,10 @@ npx prettier --write src                      # formatting (.prettierrc)
 - `app/main.py`: the `create_app(settings)` factory. It sets up logging, middleware, CORS, exception handlers, routers and the `lifespan`.
 - `app/core/`: cross-cutting code. `config.py` holds `Settings`, `logging.py` + `middleware.py` handle structured logs with a per-request `request_id`, and `exceptions.py` holds domain exceptions plus the handlers that map them to HTTP responses.
 - Routes stay thin. They don't catch exceptions or talk to SDKs directly. Services raise domain exceptions, and the handlers in `core/exceptions.py` turn them into HTTP responses.
+- External data has two sources:
+  - Fares come from `ryanair-py`, which is sync, through `FlightService` and `/flights/*`.
+  - The route network (active airports and the direct routes per airport) comes from Ryanair's unofficial public website API, through `NetworkService` and `/network/*`. It is async, uses the shared `httpx.AsyncClient` created in the `lifespan`, and keeps an in-memory TTL cache per worker. Because that API is unofficial, any upstream or parsing failure becomes a 502.
+- Ryanair's fare API only matches **lowercase** country codes (`es`, not `ES`). The API accepts uppercase codes, and `FlightService` lowercases them.
 
 ### Backend rules (apply to all backend code)
 
@@ -75,13 +79,19 @@ npx prettier --write src                      # formatting (.prettierrc)
 ### Backend/frontend contract
 
 - Query parameters are **snake_case**. JSON responses are **camelCase** (via `CamelModel`). The TypeScript interfaces in the frontend services mirror the backend schemas. When you change an endpoint or schema, update both sides in the same change.
-- The frontend currently hardcodes the API base URL (`http://127.0.0.1:8000`). The backend's `CORS_ORIGINS` setting must include the frontend's origin.
+- The frontend's API base URL is a single constant in `src/app/services/api.ts` (`http://127.0.0.1:8000`). The backend's `CORS_ORIGINS` setting must include the frontend's origin.
 
 ### Frontend
 
 - Angular standalone components (no NgModules). Each feature is a component folder in `src/app/components/`, HTTP calls live in services in `src/app/services/`, and routes are registered in `app.routes.ts`.
 - The app is **zoneless** (`provideZonelessChangeDetection()`), so UI updates must come from signals or template events, not zone.js-triggered change detection.
 - Data passed between pages currently lives in memory on the services, so it is lost when the page reloads.
+- **Trip picker:** `TripSelection` (`services/trip-selection.ts`) is the single source of truth for the four steps (origin country → destination country → origin airport → destination airport).
+  - It's a signals store with computed reachability. Choosing a step clears the steps after it.
+  - Any view of the picker (the card UI in `components/trip-picker/`, and the planned map) must read and write this store, not keep its own state.
+  - `ANY_AIRPORT` maps to a `destination_country` search.
+- **Selectable cards:** `components/option-card/` is the reusable card. Cards are buttons with `aria-pressed`. Unavailable options use `aria-disabled` (not `disabled`), so they stay focusable and announce why they can't be chosen.
+- **Flags:** SVGs from the `flag-icons` package, copied as static assets to `flags/<iso2>.svg` (see `angular.json` assets). Show them with `<img src="flags/pt.svg" alt="">`. Don't use the package's CSS: its 4:3 and 1:1 flag folders reuse the same file names, which breaks `ng serve` and `ng test`.
 - The app is in English: all user-facing text, code comments and `<html lang="en">`.
 
 ### UI/UX design system (apply to all frontend styling)
@@ -97,4 +107,5 @@ npx prettier --write src                      # formatting (.prettierrc)
 ### Tests
 
 - Backend tests never call real external APIs. `backend/tests/conftest.py` provides a `client` (TestClient), fixtures that monkeypatch the external SDK, and `override_service`, which swaps dependencies through `app.dependency_overrides`. Follow the same pattern for new services.
-- Frontend specs live next to the code they test (`*.spec.ts`) and run on Vitest.
+- `override_network` swaps `NetworkService`. Network tests build the service on `httpx.MockTransport`.
+- Frontend specs live next to the code they test (`*.spec.ts`) and run on Vitest. HTTP calls are mocked with `HttpTestingController`, and shared airport/route fixtures live in `src/app/testing/network-fixtures.ts`.

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { API_BASE_URL } from './api';
 
 export interface FlightResponse {
   flightNumber: string;
@@ -15,15 +16,16 @@ export interface FlightSearchParams {
   origin: string;
   date_from: string;
   destination?: string;
+  destination_country?: string;
   date_to?: string;
   currency?: string;
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class FlightService {
-  private apiUrl = 'http://127.0.0.1:8000/flights/cheapest';
+  private apiUrl = `${API_BASE_URL}/flights/cheapest`;
   public searchResults: FlightResponse[] = [];
 
   constructor(private http: HttpClient) {}
@@ -36,6 +38,9 @@ export class FlightService {
     if (params.destination) {
       httpParams = httpParams.set('destination', params.destination);
     }
+    if (params.destination_country) {
+      httpParams = httpParams.set('destination_country', params.destination_country);
+    }
     if (params.date_to) {
       httpParams = httpParams.set('date_to', params.date_to);
     }
@@ -46,7 +51,7 @@ export class FlightService {
     return this.http.get<FlightResponse[]>(this.apiUrl, { params: httpParams }).pipe(
       tap((results) => {
         this.searchResults = results;
-      })
+      }),
     );
   }
 }

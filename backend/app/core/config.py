@@ -19,6 +19,11 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:4200", "http://127.0.0.1:4200"]
 
+    # Ryanair's public website API (unofficial), used for the airport/route network.
+    ryanair_web_api_url: str = "https://www.ryanair.com"
+    network_cache_ttl_seconds: int = 86400
+    upstream_timeout_seconds: float = 10.0
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"

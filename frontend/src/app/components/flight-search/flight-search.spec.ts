@@ -23,13 +23,22 @@ describe('FlightSearchComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('shows field errors when submitting an empty form', async () => {
+  it('asks for the trip and the date when submitting an empty form', async () => {
     const compiled = fixture.nativeElement as HTMLElement;
     compiled.querySelector('form')!.dispatchEvent(new Event('submit'));
     await fixture.whenStable();
 
-    expect(compiled.querySelector('#origin-error')?.textContent).toContain('origin airport');
+    expect(compiled.textContent).toContain('Choose your departure and arrival airports.');
     expect(compiled.querySelector('#date_from-error')?.textContent).toContain('departure date');
-    expect(compiled.querySelector('#origin')?.getAttribute('aria-invalid')).toBe('true');
+    expect(compiled.querySelector('#date_from')?.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('fills the search form from the trip picker', () => {
+    component.onTripChange({ origin: 'OPO', destination: null, destinationCountry: 'ES' });
+
+    expect(component.searchForm.getRawValue()).toEqual(
+      expect.objectContaining({ origin: 'OPO', destination: '', destination_country: 'ES' }),
+    );
+    expect(component.tripComplete()).toBe(true);
   });
 });
