@@ -214,6 +214,28 @@ On load the URL wins, once airports arrive. After that, every change replaces th
 - **☆ Save route** appears once the trip is complete (on the route card and on the Search page) and toggles to **★ Saved**.
 - Saved routes are kept in `localStorage` in this browser only; there are no accounts. Clicking a saved route makes it the current trip, and **×** removes it.
 - The result is announced in a polite live region: "… selected.", "… is no longer served by Ryanair." or "… removed from saved routes."
+- **Always shown,** even with no saved routes: the heading, the hint "Save a route to find it here, or upload a routes file." and **↑ Upload file**.
+
+### Routes file (download and upload)
+
+To keep saved routes, or bring them to another browser or computer.
+
+- **↓ Download file** (only with saved routes) saves `cheap-flights-routes.json`. The polite live region announces "N routes downloaded as cheap-flights-routes.json."
+- **↑ Upload file** opens the browser's file dialog (`.json` only). It is disabled until the airports have loaded, since names are looked up from them.
+- **The file holds only codes:** `{"app": "cheap-flights-europe", "version": 1, "routes": [{"origins": ["CGN", "NRN"], "destination": "PMI", "destinationCountry": "ES"}]}`. `destination: null` means any airport in `destinationCountry`. A bare list of routes is accepted too.
+- **On upload:**
+  - names come from today's airport list, not from the file;
+  - for an airport destination, its country is taken from the airport;
+  - codes may be lowercase, and repeated departures are merged;
+  - new routes go after the saved ones, in the file's order; a route already saved is never added twice;
+  - routes with unknown airports, a departure equal to the destination, more than 3 departures or a wrong shape are skipped, not fatal.
+- **Outcome,** shown under the buttons and announced in the live region:
+  - "Added 2 routes. 1 route was already saved. 1 route skipped: unknown airports, or ones Ryanair no longer flies from."
+  - "No new routes. 2 routes were already saved."
+  - "That file has no routes."
+  - Shown in the error color when nothing could be used: "page.html isn't a routes file. Upload a file downloaded from Saved routes.", "big.json is too big to be a routes file." (over 1 MB, not read), or every route skipped.
+- **Versions:** a file with a higher `version` than the app knows is refused as not a routes file. Bump `ROUTES_FILE_VERSION` when the shape of a file route changes.
+- **`.btn-outline`** (shared, in `src/styles.css`) is used for both buttons, like ☆ Save route. When disabled it turns grey with white text, like other disabled buttons.
 
 ## 8. Tokens and layout constants
 

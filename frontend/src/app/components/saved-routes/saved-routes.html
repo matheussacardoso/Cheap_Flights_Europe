@@ -1,6 +1,6 @@
-@if (saved.routes().length) {
-  <section class="saved-routes" aria-labelledby="saved-routes-title">
-    <h2 id="saved-routes-title" class="section-title">Saved routes</h2>
+<section class="saved-routes" aria-labelledby="saved-routes-title">
+  <h2 id="saved-routes-title" class="section-title">Saved routes</h2>
+  @if (saved.routes().length) {
     <ul class="route-list">
       @for (route of saved.routes(); track route.id) {
         <li class="route" [class.is-current]="saved.current()?.id === route.id">
@@ -42,6 +42,36 @@
         </li>
       }
     </ul>
-  </section>
-}
+  } @else {
+    <p class="hint">Save a route to find it here, or upload a routes file.</p>
+  }
+  <div class="file-actions">
+    @if (saved.routes().length) {
+      <button type="button" class="btn btn-outline" (click)="download()">
+        <span aria-hidden="true">↓</span> Download file
+      </button>
+    }
+    <button
+      type="button"
+      class="btn btn-outline"
+      [disabled]="!trip.airports().length"
+      (click)="fileInput.click()"
+    >
+      <span aria-hidden="true">↑</span> Upload file
+    </button>
+    <input
+      #fileInput
+      type="file"
+      class="visually-hidden"
+      accept=".json,application/json"
+      tabindex="-1"
+      aria-hidden="true"
+      (change)="upload(fileInput)"
+    />
+  </div>
+  @if (fileMessage(); as status) {
+    <!-- Visible only; the polite live region below announces it. -->
+    <p class="file-status" [class.error]="status.isError">{{ status.text }}</p>
+  }
+</section>
 <p class="visually-hidden" aria-live="polite">{{ message() }}</p>

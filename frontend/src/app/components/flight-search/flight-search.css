@@ -24,11 +24,6 @@ form {
   margin-bottom: var(--space-6);
 }
 
-/* The saved-routes component renders nothing visible without routes. */
-.saved:not(:has(.saved-routes)) {
-  margin-bottom: 0;
-}
-
 .status {
   display: flex;
   flex-direction: column;
