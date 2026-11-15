@@ -10,7 +10,7 @@ The main goal is to search for cheap flights across Europe from low-cost airline
 | - | ----------- | ------ |
 | 1 | An **interactive map** where the user discovers which routes they can take. | ✅ Done. The **Routes** page: a full-screen map of Ryanair's network that you can drag and zoom. Click an airport to see its direct flights. |
 | 2 | **Search boxes** for country, airport, origin and destination, so the user can find the cheapest tickets quickly. | ✅ Done, as airport-first search boxes. **From** takes a city, airport name or code. **To** takes an airport or "Any airport in {country}". |
-| 3 | The user can **save routes in a JSON file and upload it** to the app. The app then searches for the cheapest date and route using their parameters. | 🟡 Partly done. Routes are saved in this browser (`localStorage`), and one click fills the search. JSON export/upload and searching a whole list of routes at once are not built yet. |
+| 3 | The user can **save routes in a JSON file and upload it** to the app. The app then searches for the cheapest date and route using their parameters. | 🟡 Partly done. Routes are saved in this browser (`localStorage`), and one click fills the search. They can be downloaded as a JSON file and uploaded again (see *Routes file* below). Searching a whole list of routes at once is not built yet. |
 | 4 | The user can **search cheap flights for the period they want**, for example Thursday to Monday or Wednesday to Monday. | ✅ Done. See *Search by weekdays* below. |
 | 5 | The app **doesn't need an account**. | ✅ Done. There are no accounts. Saved routes stay in the browser, and the chosen route is kept in the URL. |
 | 6 | **Several departure airports**: someone living between airports (e.g. a student in Aachen) can fly from any of them, e.g. Cologne or Dusseldorf Weeze. Only for the origin. | ✅ Done. See *Several departure airports* below. |
@@ -88,9 +88,25 @@ GET /flights/trips?origin=CGN&destination=PMI&date_from=2026-12-01&date_to=2027-
   - Cologne + Weeze → Palma, Thursday to Monday over three months: 3.7 s. The best trip was €75.98, out from Weeze and back to Cologne, cheaper than the best Cologne-only trip (€83.83).
   - Three airports to any airport in Spain: about 7 s.
 
+## Routes file (requirement 3)
+
+- In **Saved routes**, **Download file** saves them as `cheap-flights-routes.json`, and **Upload file** adds the routes of such a file.
+- The file holds only airport and country codes, with a format version:
+
+  ```json
+  {
+    "app": "cheap-flights-europe",
+    "version": 1,
+    "routes": [{ "origins": ["CGN", "NRN"], "destination": "PMI", "destinationCountry": "ES" }]
+  }
+  ```
+
+- Uploading never replaces the list: new routes are added after the saved ones, duplicates are ignored, and routes with airports Ryanair no longer serves are skipped and counted.
+- It runs in the browser only; nothing is sent to the backend.
+
 ## Not built yet (from the README's vision)
 
 - Other low-cost airlines (easyJet, Wizz Air, Vueling, …).
 - Departure and arrival time windows.
 - Price caps, and price alerts.
-- Saved routes as a JSON file, and searching all of them at once (requirement 3).
+- Searching all saved routes at once (the rest of requirement 3).

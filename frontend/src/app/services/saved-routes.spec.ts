@@ -2,7 +2,13 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { AIRPORTS, PT_ROUTES, answerRoutes } from '../testing/network-fixtures';
-import { SAVED_ROUTES_KEY, SAVED_ROUTES_KEY_V1, SavedRoute, SavedRoutes } from './saved-routes';
+import {
+  ROUTES_FILE_VERSION,
+  SAVED_ROUTES_KEY,
+  SAVED_ROUTES_KEY_V1,
+  SavedRoute,
+  SavedRoutes,
+} from './saved-routes';
 import { TripSelection } from './trip-selection';
 
 const OPO_TO_MAD: SavedRoute = {
@@ -134,5 +140,96 @@ describe('SavedRoutes', () => {
         originName: 'OPO Airport + LIS Airport',
       }),
     );
+  });
+
+  describe('routes file', () => {
+    const LIS_TO_SPAIN: SavedRoute = {
+      id: 'LIS+OPO-any-ES',
+      originCountry: 'PT',
+      origins: ['LIS', 'OPO'],
+      originName: 'LIS Airport + OPO Airport',
+      destinationCountry: 'ES',
+      destination: null,
+      destinationName: 'Any airport in Spain',
+    };
+
+    it('downloads only the codes of each route, with a version', () => {
+      localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify([OPO_TO_MAD, LIS_TO_SPAIN]));
+      const saved = setUp();
+
+      expect(JSON.parse(saved.toFile())).toEqual({
+        app: 'cheap-flights-europe',
+        version: ROUTES_FILE_VERSION,
+        routes: [
+          { origins: ['OPO'], destination: 'MAD', destinationCountry: 'ES' },
+          { origins: ['LIS', 'OPO'], destination: null, destinationCountry: 'ES' },
+        ],
+      });
+    });
+
+    it('uploads a downloaded file back, with names looked up again', () => {
+      localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify([OPO_TO_MAD, LIS_TO_SPAIN]));
+      const file = setUp().toFile();
+      localStorage.clear();
+      TestBed.resetTestingModule();
+      const saved = setUp();
+
+      expect(saved.importFile(file)).toEqual({ added: 2, alreadySaved: 0, skipped: 0 });
+      expect(saved.routes()).toEqual([OPO_TO_MAD, LIS_TO_SPAIN]);
+      expect(stored()).toEqual([OPO_TO_MAD, LIS_TO_SPAIN]);
+    });
+
+    it('adds new routes after the saved ones and never twice', () => {
+      localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify([OPO_TO_MAD]));
+      const saved = setUp();
+      const file = JSON.stringify({
+        version: 1,
+        routes: [
+          { origins: ['OPO'], destination: 'MAD', destinationCountry: 'ES' },
+          { origins: ['lis', 'OPO', 'LIS'], destination: null, destinationCountry: 'es' },
+        ],
+      });
+
+      expect(saved.importFile(file)).toEqual({ added: 1, alreadySaved: 1, skipped: 0 });
+      expect(saved.routes()).toEqual([OPO_TO_MAD, LIS_TO_SPAIN]);
+      expect(saved.importFile(file)).toEqual({ added: 0, alreadySaved: 2, skipped: 0 });
+    });
+
+    it('takes the country of an airport destination from the airport', () => {
+      const saved = setUp();
+      saved.importFile(
+        JSON.stringify([{ origins: ['OPO'], destination: 'MAD', destinationCountry: 'PT' }]),
+      );
+      expect(saved.routes()).toEqual([OPO_TO_MAD]);
+    });
+
+    it('skips routes with unknown airports or that are not valid', () => {
+      const saved = setUp();
+      const file = JSON.stringify({
+        routes: [
+          { origins: ['XXX'], destination: 'MAD', destinationCountry: 'ES' },
+          { origins: ['OPO'], destination: 'ZZZ', destinationCountry: 'ES' },
+          { origins: ['OPO'], destination: null, destinationCountry: 'FR' },
+          { origins: ['OPO'], destination: 'OPO', destinationCountry: 'PT' },
+          { origins: ['OPO', 'LIS', 'AGP', 'MAD'], destination: null, destinationCountry: 'IE' },
+          { origins: [], destination: 'MAD', destinationCountry: 'ES' },
+          { origins: 'OPO', destination: 'MAD' },
+          'OPO-MAD',
+          null,
+        ],
+      });
+
+      expect(saved.importFile(file)).toEqual({ added: 0, alreadySaved: 0, skipped: 9 });
+      expect(saved.routes()).toEqual([]);
+      expect(localStorage.getItem(SAVED_ROUTES_KEY)).toBeNull();
+    });
+
+    it('refuses text that is not a routes file', () => {
+      const saved = setUp();
+      for (const text of ['not json', '42', '"routes"', '{"trips": []}', 'null']) {
+        expect(saved.importFile(text)).toBeNull();
+      }
+      expect(saved.importFile(JSON.stringify({ version: 2, routes: [] }))).toBeNull();
+    });
   });
 });

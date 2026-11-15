@@ -170,9 +170,21 @@ input[aria-invalid='true'] {
   background-color: var(--color-secondary);
 }
 
+/* A quieter action next to a primary one, or on its own. */
+.btn-outline {
+  border: 1px solid var(--color-primary);
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+}
+
 .btn:disabled {
   background-color: var(--color-disabled);
   cursor: not-allowed;
+}
+
+.btn-outline:disabled {
+  border-color: var(--color-disabled);
+  color: var(--color-on-color);
 }
 
 /* Feedback */
