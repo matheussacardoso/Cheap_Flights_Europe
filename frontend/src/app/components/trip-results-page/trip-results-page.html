@@ -3,12 +3,12 @@
 
   <a routerLink="/search" class="btn btn-secondary btn-back">← New search</a>
 
-  @if (trips.length === 0) {
+  @if (rows().length === 0) {
     <p class="muted">No round trips found for these days, or your search session expired.</p>
   } @else {
     <p class="form-hint">
-      {{ trips.length }} {{ trips.length === 1 ? 'trip' : 'trips' }}, cheapest first. Prices are for
-      one adult, both flights.
+      {{ rows().length }} {{ rows().length === 1 ? 'trip' : 'trips' }}, cheapest first. Prices are
+      for one adult, both flights.
     </p>
     <table>
       <thead>
@@ -22,19 +22,20 @@
       </thead>
       <tbody>
         @for (
-          trip of trips;
-          track trip.outbound.departureTime + trip.outbound.destination;
+          row of rows();
+          track row.trip.outbound.departureTime + row.trip.outbound.destination;
           let first = $first
         ) {
+          @let trip = row.trip;
           <tr [class.is-cheapest]="first">
             <td>
               <strong>{{ trip.outbound.departureTime | date: 'EEE d MMM' }}</strong>
               → {{ trip.inbound.departureTime | date: 'EEE d MMM' }}
             </td>
-            <td>{{ airportName(trip.outbound.destination) }} ({{ trip.outbound.destination }})</td>
+            <td>{{ row.destinationName }} ({{ trip.outbound.destination }})</td>
             <td>
               <strong>{{ trip.outbound.departureTime | date: 'HH:mm' }}</strong>
-              from {{ airportName(trip.outbound.origin) }}
+              from {{ row.outboundOriginName }}
               <span class="detail"
                 >{{ trip.outbound.flightNumber }} ·
                 {{ trip.outbound.price | currency: trip.outbound.currency }}</span
@@ -42,7 +43,7 @@
             </td>
             <td>
               <strong>{{ trip.inbound.departureTime | date: 'HH:mm' }}</strong>
-              to {{ airportName(trip.inbound.destination) }}
+              to {{ row.inboundDestinationName }}
               <span class="detail"
                 >{{ trip.inbound.flightNumber }} ·
                 {{ trip.inbound.price | currency: trip.inbound.currency }}</span

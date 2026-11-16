@@ -5,7 +5,7 @@ import type { FeatureCollection, MultiPolygon } from 'geojson';
 import { CountryShapeProperties, MAP_URL } from '../../services/map-data';
 import { TripSelection } from '../../services/trip-selection';
 import { AIRPORTS, PT_ROUTES, routesFor, answerRoutes } from '../../testing/network-fixtures';
-import { TripMapComponent } from './trip-map';
+import { TripMap } from './trip-map';
 
 /** A rough box around a country; rings run clockwise, as d3-geo expects. */
 function country(code: string, west: number, south: number, east: number, north: number) {
@@ -41,15 +41,15 @@ const SHAPES: FeatureCollection<MultiPolygon, CountryShapeProperties> = {
   ],
 };
 
-describe('TripMapComponent', () => {
-  let fixture: ComponentFixture<TripMapComponent>;
+describe('TripMap', () => {
+  let fixture: ComponentFixture<TripMap>;
   let http: HttpTestingController;
   let trip: TripSelection;
   let element: HTMLElement;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TripMapComponent],
+      imports: [TripMap],
       providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
@@ -57,7 +57,7 @@ describe('TripMapComponent', () => {
     trip = TestBed.inject(TripSelection);
     trip.airports.set(AIRPORTS);
 
-    fixture = TestBed.createComponent(TripMapComponent);
+    fixture = TestBed.createComponent(TripMap);
     element = fixture.nativeElement;
     await fixture.whenStable();
     http.expectOne(MAP_URL).flush(SHAPES);
@@ -92,13 +92,21 @@ describe('TripMapComponent', () => {
     await fixture.whenStable();
   }
 
+  /** The pan and zoom drawn on the map, read from its `transform` attribute. */
+  function view(): { x: number; y: number; k: number } {
+    const transform = element.querySelector('.viewport')?.getAttribute('transform') ?? '';
+    const [x, y, k] = (transform.match(/-?[\d.]+(?:e-?\d+)?/g) ?? []).map(Number);
+    return { x, y, k };
+  }
+
   /** Whether the airport's dot is inside the visible part of the map. */
   function inView(code: string): boolean {
-    const map = fixture.componentInstance;
-    const airport = map.airports().find((a) => a.code === code)!;
-    const [x, y] = map.transform().apply([airport.x, airport.y]);
-    const { width, height } = map.size();
-    return x >= 0 && x <= width && y >= 0 && y <= height;
+    const circle = dot(code).querySelector('circle')!;
+    const [, , width, height] = element.querySelector('svg')!.getAttribute('viewBox')!.split(' ');
+    const { x, y, k } = view();
+    const screenX = x + k * Number(circle.getAttribute('cx'));
+    const screenY = y + k * Number(circle.getAttribute('cy'));
+    return screenX >= 0 && screenX <= Number(width) && screenY >= 0 && screenY <= Number(height);
   }
 
   it('shows every Ryanair airport as a clickable dot before a departure is chosen', () => {
@@ -151,12 +159,12 @@ describe('TripMapComponent', () => {
   });
 
   it('zooms to the departure airport and its destinations', async () => {
-    expect(fixture.componentInstance.zoom()).toBe(1);
+    expect(view().k).toBe(1);
     await flyFromPorto();
     trip.selectDestination('MAD');
     await fixture.whenStable();
 
-    expect(fixture.componentInstance.zoom()).toBeGreaterThan(1);
+    expect(view().k).toBeGreaterThan(1);
     expect(inView('OPO') && inView('MAD')).toBe(true);
   });
 
@@ -167,12 +175,12 @@ describe('TripMapComponent', () => {
 
     button('Zoom in').click();
     await fixture.whenStable();
-    expect(fixture.componentInstance.zoom()).toBeCloseTo(1.5);
+    expect(view().k).toBeCloseTo(1.5);
     expect(button('Zoom out').disabled).toBe(false);
 
     button('Reset view').click();
     await fixture.whenStable();
-    expect(fixture.componentInstance.zoom()).toBe(1);
+    expect(view().k).toBe(1);
   });
 
   it('names the airports of the trip, not their codes', async () => {
@@ -184,14 +192,14 @@ describe('TripMapComponent', () => {
   });
 });
 
-describe('TripMapComponent when the map fails to load', () => {
+describe('TripMap when the map fails to load', () => {
   it('shows an error and retries', async () => {
     await TestBed.configureTestingModule({
-      imports: [TripMapComponent],
+      imports: [TripMap],
       providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
     const http = TestBed.inject(HttpTestingController);
-    const fixture = TestBed.createComponent(TripMapComponent);
+    const fixture = TestBed.createComponent(TripMap);
     await fixture.whenStable();
 
     http.expectOne(MAP_URL).flush('', { status: 404, statusText: 'Not Found' });

@@ -1,4 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FlagUrlPipe } from '../../pipes/flag-url-pipe';
 import {
   ImportResult,
   ROUTES_FILE_MAX_BYTES,
@@ -13,53 +15,61 @@ import { TripSelection } from '../../services/trip-selection';
  * a JSON file and uploaded again, in this browser or another one.
  */
 @Component({
-  selector: 'app-saved-routes',
-  standalone: true,
-  templateUrl: './saved-routes.html',
-  styleUrl: './saved-routes.css',
+  selector: 'app-saved-routes-list',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FlagUrlPipe],
+  templateUrl: './saved-routes-list.html',
+  styleUrl: './saved-routes-list.css',
 })
-export class SavedRoutesComponent {
-  readonly saved = inject(SavedRoutes);
-  readonly trip = inject(TripSelection);
+export class SavedRoutesList {
+  private readonly document = inject(DOCUMENT);
+  protected readonly saved = inject(SavedRoutes);
+  protected readonly trip = inject(TripSelection);
 
   /** Feedback for screen readers and for routes that can't be used any more. */
-  readonly message = signal('');
+  protected readonly message = signal('');
   /** Visible outcome of the last upload. */
-  readonly fileMessage = signal<{ text: string; isError: boolean } | null>(null);
+  protected readonly fileMessage = signal<{ text: string; isError: boolean } | null>(null);
 
-  name(route: SavedRoute): string {
-    return `${route.originName} to ${route.destinationName}`;
-  }
+  /** The saved routes as the list shows them. */
+  protected readonly items = computed(() => {
+    const currentId = this.saved.current()?.id;
+    return this.saved.routes().map((route) => ({
+      route,
+      name: routeName(route),
+      isCurrent: route.id === currentId,
+    }));
+  });
 
-  use(route: SavedRoute): void {
+  protected use(route: SavedRoute): void {
     if (!this.trip.airports().length) {
       return;
     }
     this.message.set(
       this.saved.use(route)
-        ? `${this.name(route)} selected.`
-        : `${this.name(route)} is no longer served by Ryanair.`,
+        ? `${routeName(route)} selected.`
+        : `${routeName(route)} is no longer served by Ryanair.`,
     );
   }
 
-  remove(route: SavedRoute): void {
+  protected remove(route: SavedRoute): void {
     this.saved.remove(route.id);
-    this.message.set(`${this.name(route)} removed from saved routes.`);
+    this.message.set(`${routeName(route)} removed from saved routes.`);
   }
 
-  download(): void {
+  protected download(): void {
     const url = URL.createObjectURL(new Blob([this.saved.toFile()], { type: 'application/json' }));
-    const link = document.createElement('a');
+    const link = this.document.createElement('a');
     link.href = url;
     link.download = ROUTES_FILE_NAME;
     link.click();
-    // Revoked after the click has started the download.
+    // Revoked on the next task: revoking right away can cancel the download in some browsers.
     setTimeout(() => URL.revokeObjectURL(url));
     const count = this.saved.routes().length;
     this.message.set(`${plural(count, 'route')} downloaded as ${ROUTES_FILE_NAME}.`);
   }
 
-  async upload(input: HTMLInputElement): Promise<void> {
+  protected async upload(input: HTMLInputElement): Promise<void> {
     const file = input.files?.[0];
     // Cleared so that choosing the same file again uploads it again.
     input.value = '';
@@ -88,6 +98,11 @@ export class SavedRoutesComponent {
     this.fileMessage.set({ text, isError });
     this.message.set(text);
   }
+}
+
+/** "Cologne to Malaga", for buttons and announcements. */
+function routeName(route: SavedRoute): string {
+  return `${route.originName} to ${route.destinationName}`;
 }
 
 /** "Added 2 routes. 1 was already saved. 1 skipped: …" */

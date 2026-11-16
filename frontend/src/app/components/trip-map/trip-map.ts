@@ -1,11 +1,12 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  DestroyRef,
-  ElementRef,
-  OnInit,
   computed,
+  DestroyRef,
   effect,
+  ElementRef,
   inject,
+  afterNextRender,
   signal,
   untracked,
   viewChild,
@@ -15,10 +16,10 @@ import { geoConicConformal, geoPath } from 'd3-geo';
 import { Selection, select } from 'd3-selection';
 import 'd3-transition';
 import { ZoomBehavior, ZoomTransform, zoom, zoomIdentity } from 'd3-zoom';
-import { Airport } from '../../services/network';
-import { CountryShape, MapDataService } from '../../services/map-data';
+import { Airport } from '../../services/network-http-client';
+import { CountryShape, MapData } from '../../services/map-data';
 import { TripSelection, airportLabel } from '../../services/trip-selection';
-import { LoadingIndicatorComponent } from '../loading-indicator/loading-indicator';
+import { LoadingIndicator } from '../loading-indicator/loading-indicator';
 
 /*
  * The SVG's viewBox matches the size of the map on screen, so before zooming one user unit is
@@ -68,8 +69,10 @@ interface MapCountry {
 
 interface MapAirport {
   code: string;
-  /** "Name, City (CODE)", for tooltips and screen readers. */
+  /** "Name, City (CODE)", for screen readers. */
   label: string;
+  /** The label plus why it can't be chosen, for the tooltip. */
+  title: string;
   /** Short name drawn next to the dot. */
   name: string;
   x: number;
@@ -79,6 +82,13 @@ interface MapAirport {
   status: AirportStatus;
   selectable: boolean;
   note: string;
+}
+
+/** An airport as drawn at the current zoom: where its name goes. */
+interface MapAirportView extends MapAirport {
+  nameX: number;
+  nameY: number;
+  nameAnchor: 'start' | 'end' | 'middle';
 }
 
 interface Flight {
@@ -100,37 +110,37 @@ interface Zoomer {
  */
 @Component({
   selector: 'app-trip-map',
-  standalone: true,
-  imports: [LoadingIndicatorComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [LoadingIndicator],
   templateUrl: './trip-map.html',
   styleUrl: './trip-map.css',
 })
-export class TripMapComponent implements OnInit {
-  readonly trip = inject(TripSelection);
-  private mapData = inject(MapDataService);
-  private destroyRef = inject(DestroyRef);
-  private host = inject<ElementRef<HTMLElement>>(ElementRef);
-  private svgRef = viewChild<ElementRef<SVGSVGElement>>('svg');
+export class TripMap {
+  protected readonly trip = inject(TripSelection);
+  private readonly mapData = inject(MapData);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly svgRef = viewChild<ElementRef<SVGSVGElement>>('svg');
 
-  readonly shapes = signal<CountryShape[]>([]);
-  readonly loading = signal(false);
-  readonly error = signal('');
+  private readonly shapes = signal<CountryShape[]>([]);
+  protected readonly loading = signal(false);
+  protected readonly error = signal('');
 
-  readonly size = signal(DEFAULT_SIZE);
-  readonly viewBox = computed(() => `0 0 ${this.size().width} ${this.size().height}`);
+  private readonly size = signal(DEFAULT_SIZE);
+  protected readonly viewBox = computed(() => `0 0 ${this.size().width} ${this.size().height}`);
 
   /** The current pan and zoom. */
-  readonly transform = signal<ZoomTransform>(zoomIdentity);
+  protected readonly transform = signal<ZoomTransform>(zoomIdentity);
   /** Zoom when the last gesture ended: names are placed for it (not on every frame). */
   private readonly settledZoom = signal(1);
   private readonly zoomer = signal<Zoomer | null>(null);
 
-  readonly zoom = computed(() => this.transform().k);
-  readonly dotRadius = computed(() => DOT_RADIUS / this.zoom());
-  readonly labelSize = computed(() => LABEL_SIZE / this.zoom());
-  readonly arrowSize = computed(() => 10 / this.zoom());
-  readonly canZoomIn = computed(() => this.zoom() < MAX_ZOOM);
-  readonly canZoomOut = computed(() => this.zoom() > 1);
+  private readonly zoom = computed(() => this.transform().k);
+  protected readonly dotRadius = computed(() => DOT_RADIUS / this.zoom());
+  protected readonly labelSize = computed(() => LABEL_SIZE / this.zoom());
+  protected readonly arrowSize = computed(() => 10 / this.zoom());
+  protected readonly canZoomIn = computed(() => this.zoom() < MAX_ZOOM);
+  protected readonly canZoomOut = computed(() => this.zoom() > 1);
 
   /** Conic projection framed on Ryanair's airports (Canary Islands to Lapland, Azores to Jordan). */
   private readonly projection = computed(() => {
@@ -151,7 +161,7 @@ export class TripMapComponent implements OnInit {
 
   private readonly path = computed(() => geoPath(this.projection()));
 
-  readonly countries = computed<MapCountry[]>(() => {
+  protected readonly countries = computed<MapCountry[]>(() => {
     const path = this.path();
     const projection = this.projection();
     const names = new Map(this.trip.countries().map((c) => [c.code, c.name]));
@@ -173,7 +183,7 @@ export class TripMapComponent implements OnInit {
     });
   });
 
-  readonly airports = computed<MapAirport[]>(() => {
+  private readonly airports = computed<MapAirport[]>(() => {
     const projection = this.projection();
     const origin = this.trip.origin();
     const origins = new Set(this.trip.origins());
@@ -204,6 +214,7 @@ export class TripMapComponent implements OnInit {
       return {
         code: airport.code,
         label: airportLabel(airport),
+        title: note ? `${airportLabel(airport)}: ${note}` : airportLabel(airport),
         name: airport.name,
         x,
         y,
@@ -224,12 +235,32 @@ export class TripMapComponent implements OnInit {
     return dots.sort((a, b) => layer[a.status] - layer[b.status] || a.label.localeCompare(b.label));
   });
 
+  /** The airports with their names placed for the live zoom (dots and text keep their size). */
+  protected readonly airportViews = computed<MapAirportView[]>(() => {
+    const offset = (DOT_RADIUS + LABEL_GAP / 2) / this.zoom();
+    const labelSize = this.labelSize();
+    return this.airports().map((airport) => ({
+      ...airport,
+      nameX: nameX(airport, offset),
+      nameY: nameY(airport, offset, labelSize),
+      nameAnchor: nameAnchor(airport.namePlacement),
+    }));
+  });
+
+  /** Country names big enough on screen to be worth showing at the live zoom. */
+  protected readonly countryLabels = computed(() => {
+    const zoom = this.zoom();
+    return this.countries().filter(
+      (country) => !!country.name && country.area * zoom ** 2 >= MIN_LABEL_AREA,
+    );
+  });
+
   /**
    * Great-circle lines from the first departure airport to its direct destinations, plus one
    * from each extra departure airport to the chosen destination airport. (Where an extra
    * departure flies in a destination country isn't loaded, so it gets no lines then.)
    */
-  readonly flights = computed<Flight[]>(() => {
+  protected readonly flights = computed<Flight[]>(() => {
     const [origin, ...extra] = this.trip.originAirports();
     if (!origin) {
       return [];
@@ -263,7 +294,9 @@ export class TripMapComponent implements OnInit {
     return [...fromFirst, ...fromExtra].sort((a, b) => Number(a.chosen) - Number(b.chosen));
   });
 
-  readonly hasChosenFlight = computed(() => this.flights().some((flight) => flight.chosen));
+  protected readonly hasChosenFlight = computed(() =>
+    this.flights().some((flight) => flight.chosen),
+  );
 
   /** What the map zooms to: the trip, the departure airport's network, or everything. */
   private readonly focusPoints = computed<[number, number][]>(() => {
@@ -313,6 +346,10 @@ export class TripMapComponent implements OnInit {
       onCleanup(() => svg.on('.zoom', null));
     });
 
+    this.load();
+    // ResizeObserver is a browser API: start it once the map is rendered.
+    afterNextRender(() => this.observeSize());
+
     // Zoom to the trip whenever it changes. The user can pan away freely in between.
     effect(() => {
       const points = this.focusPoints();
@@ -323,16 +360,11 @@ export class TripMapComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    this.load();
-    this.observeSize();
-  }
-
-  load(): void {
+  protected load(): void {
     this.loading.set(true);
     this.error.set('');
     this.mapData
-      .getCountryShapes()
+      .fetchCountryShapes()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (collection) => {
@@ -346,67 +378,23 @@ export class TripMapComponent implements OnInit {
       });
   }
 
-  zoomIn(): void {
+  protected zoomIn(): void {
     this.zoomBy(ZOOM_STEP);
   }
 
-  zoomOut(): void {
+  protected zoomOut(): void {
     this.zoomBy(1 / ZOOM_STEP);
   }
 
   /** Back to the trip, or to the whole network when nothing is chosen. */
-  resetView(): void {
+  protected resetView(): void {
     const zoomer = this.zoomer();
     if (zoomer) {
       this.zoomTo(zoomer, this.fitTransform(this.focusPoints()));
     }
   }
 
-  showLabel(country: MapCountry): boolean {
-    return !!country.name && country.area * this.zoom() ** 2 >= MIN_LABEL_AREA;
-  }
-
-  /** Position of the airport's name, on the side of the dot chosen by `placeNames`. */
-  nameX(airport: MapAirport): number {
-    const offset = (DOT_RADIUS + LABEL_GAP / 2) / this.zoom();
-    switch (airport.namePlacement) {
-      case 'right':
-        return airport.x + offset;
-      case 'left':
-        return airport.x - offset;
-      default:
-        return airport.x;
-    }
-  }
-
-  nameY(airport: MapAirport): number {
-    const offset = (DOT_RADIUS + LABEL_GAP / 2) / this.zoom();
-    switch (airport.namePlacement) {
-      case 'above':
-        return airport.y - offset;
-      case 'below':
-        return airport.y + offset + this.labelSize() * 0.8;
-      default:
-        return airport.y + this.labelSize() / 3;
-    }
-  }
-
-  nameAnchor(airport: MapAirport): string {
-    switch (airport.namePlacement) {
-      case 'right':
-        return 'start';
-      case 'left':
-        return 'end';
-      default:
-        return 'middle';
-    }
-  }
-
-  airportTitle(airport: MapAirport): string {
-    return airport.note ? `${airport.label}: ${airport.note}` : airport.label;
-  }
-
-  select(airport: MapAirport, event?: Event): void {
+  protected select(airport: MapAirport, event?: Event): void {
     event?.preventDefault();
     if (!airport.selectable) {
       return;
@@ -526,6 +514,40 @@ function placeNames(dots: MapAirport[], zoom: number): void {
         break;
       }
     }
+  }
+}
+
+/** Where an airport's name starts, on the side of the dot chosen by `placeNames`. */
+function nameX(airport: MapAirport, offset: number): number {
+  switch (airport.namePlacement) {
+    case 'right':
+      return airport.x + offset;
+    case 'left':
+      return airport.x - offset;
+    default:
+      return airport.x;
+  }
+}
+
+function nameY(airport: MapAirport, offset: number, labelSize: number): number {
+  switch (airport.namePlacement) {
+    case 'above':
+      return airport.y - offset;
+    case 'below':
+      return airport.y + offset + labelSize * 0.8;
+    default:
+      return airport.y + labelSize / 3;
+  }
+}
+
+function nameAnchor(placement: NamePlacement | null): MapAirportView['nameAnchor'] {
+  switch (placement) {
+    case 'right':
+      return 'start';
+    case 'left':
+      return 'end';
+    default:
+      return 'middle';
   }
 }
 

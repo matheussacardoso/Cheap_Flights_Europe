@@ -1,5 +1,6 @@
-import { Component, computed, input, output, signal } from '@angular/core';
-import { Airport } from '../../services/network';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { FlagUrlPipe } from '../../pipes/flag-url-pipe';
+import { Airport } from '../../services/network-http-client';
 import { Country } from '../../services/trip-selection';
 
 /** One entry of the list: an airport, or "any airport" in a country. */
@@ -51,32 +52,35 @@ let nextId = 0;
  */
 @Component({
   selector: 'app-airport-search',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FlagUrlPipe],
   templateUrl: './airport-search.html',
   styleUrl: './airport-search.css',
 })
-export class AirportSearchComponent {
-  label = input.required<string>();
-  placeholder = input('');
-  options = input<SearchOption[]>([]);
-  value = input<SearchOption | null>(null);
-  disabled = input(false);
+export class AirportSearch {
+  readonly label = input.required<string>();
+  readonly placeholder = input('');
+  readonly options = input<SearchOption[]>([]);
+  readonly value = input<SearchOption | null>(null);
+  readonly disabled = input(false);
   /** Shown under the box, e.g. why it is disabled. */
-  hint = input('');
+  readonly hint = input('');
 
-  chosen = output<SearchOption>();
-  cleared = output<void>();
+  readonly chosen = output<SearchOption>();
+  readonly cleared = output<void>();
 
-  readonly id = `airport-search-${nextId++}`;
-  readonly query = signal('');
-  readonly open = signal(false);
+  protected readonly id = `airport-search-${nextId++}`;
+  protected readonly query = signal('');
+  protected readonly open = signal(false);
   /** True while the user is typing; otherwise the box shows the chosen option. */
-  readonly editing = signal(false);
-  readonly active = signal(0);
+  protected readonly editing = signal(false);
+  protected readonly active = signal(0);
 
-  readonly text = computed(() => (this.editing() ? this.query() : (this.value()?.title ?? '')));
+  protected readonly text = computed(() =>
+    this.editing() ? this.query() : (this.value()?.title ?? ''),
+  );
 
-  readonly results = computed<SearchOption[]>(() => {
+  protected readonly results = computed<SearchOption[]>(() => {
     const query = normalise(this.query().trim());
     if (!query) {
       return this.options().slice(0, MAX_RESULTS);
@@ -94,11 +98,11 @@ export class AirportSearchComponent {
       .map(({ option }) => option);
   });
 
-  readonly activeId = computed(() =>
+  protected readonly activeId = computed(() =>
     this.open() && this.results().length ? this.optionId(this.active()) : null,
   );
 
-  readonly status = computed(() => {
+  protected readonly status = computed(() => {
     if (!this.open() || !this.editing()) {
       return '';
     }
@@ -106,27 +110,27 @@ export class AirportSearchComponent {
     return count ? `${count} ${count === 1 ? 'result' : 'results'}` : 'No results';
   });
 
-  optionId(index: number): string {
+  private optionId(index: number): string {
     return `${this.id}-option-${index}`;
   }
 
-  onFocus(input: HTMLInputElement): void {
+  protected onFocus(input: HTMLInputElement): void {
     input.select();
     this.openList();
   }
 
-  onInput(text: string): void {
+  protected onInput(text: string): void {
     this.query.set(text);
     this.editing.set(true);
     this.active.set(0);
     this.open.set(true);
   }
 
-  onBlur(): void {
+  protected onBlur(): void {
     this.close();
   }
 
-  onKeydown(event: KeyboardEvent): void {
+  protected onKeydown(event: KeyboardEvent): void {
     const count = this.results().length;
     switch (event.key) {
       case 'ArrowDown':
@@ -163,12 +167,12 @@ export class AirportSearchComponent {
     }
   }
 
-  choose(option: SearchOption): void {
+  protected choose(option: SearchOption): void {
     this.chosen.emit(option);
     this.close();
   }
 
-  clear(input: HTMLInputElement): void {
+  protected clear(input: HTMLInputElement): void {
     this.cleared.emit();
     this.query.set('');
     this.editing.set(false);

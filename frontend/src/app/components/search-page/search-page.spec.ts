@@ -1,29 +1,32 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { ViewportScroller } from '@angular/common';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { SearchResults } from '../../services/search-results';
 import { TODAY } from '../../services/trip-period';
 import { TripSelection } from '../../services/trip-selection';
 import { AIRPORTS, PT_ROUTES, routesFor, answerRoutes } from '../../testing/network-fixtures';
-import { FlightSearchComponent } from './flight-search';
+import { SearchPage } from './search-page';
 
 @Component({ template: '' })
 class ResultsStub {}
 
-describe('FlightSearchComponent', () => {
+describe('SearchPage', () => {
   let http: HttpTestingController;
   let harness: RouterTestingHarness;
-  let component: FlightSearchComponent;
   let element: HTMLElement;
+  let scrollToPosition: ReturnType<typeof vi.fn>;
 
   async function open(url: string): Promise<void> {
     localStorage.clear();
+    scrollToPosition = vi.fn();
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
-          { path: 'search', component: FlightSearchComponent },
+          { path: 'search', component: SearchPage },
           { path: 'search/results', component: ResultsStub },
           { path: 'search/trips', component: ResultsStub },
         ]),
@@ -31,11 +34,13 @@ describe('FlightSearchComponent', () => {
         provideHttpClientTesting(),
         // A Friday: the next Thursday is 19 Nov.
         { provide: TODAY, useValue: () => new Date(2026, 10, 13) },
+        // jsdom doesn't implement scrolling.
+        { provide: ViewportScroller, useValue: { scrollToPosition } },
       ],
     });
     http = TestBed.inject(HttpTestingController);
     harness = await RouterTestingHarness.create();
-    component = await harness.navigateByUrl(url, FlightSearchComponent);
+    await harness.navigateByUrl(url, SearchPage);
     http.expectOne((req) => req.url.endsWith('/network/airports')).flush(AIRPORTS);
     await harness.fixture.whenStable();
     element = harness.routeNativeElement!;
@@ -57,10 +62,23 @@ describe('FlightSearchComponent', () => {
     return element.querySelector<HTMLSelectElement>(`#${id}`)!;
   }
 
+  /** Types into a field or picks an option, as the user would. */
+  async function fill(id: string, value: string): Promise<void> {
+    const field = element.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`)!;
+    field.value = value;
+    field.dispatchEvent(new Event(field instanceof HTMLSelectElement ? 'change' : 'input'));
+    await harness.fixture.whenStable();
+  }
+
+  async function chooseOneWay(): Promise<void> {
+    element.querySelector<HTMLInputElement>('input[value="one-way"]')!.click();
+    await harness.fixture.whenStable();
+  }
+
   it('asks for the trip and the date when submitting an empty one-way search', async () => {
     await open('/search');
-    component.searchForm.patchValue({ trip_type: 'one-way', date_from: '' });
-    await harness.fixture.whenStable();
+    await chooseOneWay();
+    await fill('date_from', '');
     element.querySelector('form')!.dispatchEvent(new Event('submit'));
     await harness.fixture.whenStable();
 
@@ -77,7 +95,8 @@ describe('FlightSearchComponent', () => {
     const boxes = [...element.querySelectorAll<HTMLInputElement>('[role="combobox"]')];
     expect(boxes.map((box) => box.value)).toEqual(['OPO Airport', 'Any airport in Spain']);
 
-    component.searchForm.patchValue({ trip_type: 'one-way', date_from: '2026-12-04' });
+    await chooseOneWay();
+    await fill('date_from', '2026-12-04');
     element.querySelector('form')!.dispatchEvent(new Event('submit'));
     const search = http.expectOne((req) => req.url.endsWith('/flights/cheapest'));
     expect(search.request.params.get('origin')).toBe('OPO');
@@ -87,6 +106,7 @@ describe('FlightSearchComponent', () => {
     await harness.fixture.whenStable();
 
     expect(TestBed.inject(Router).url).toBe('/search/results');
+    expect(scrollToPosition).toHaveBeenCalledWith([0, 0]);
   });
 
   it('only offers trips on the chosen days, starting from the next one', async () => {
@@ -122,8 +142,7 @@ describe('FlightSearchComponent', () => {
     expect(options('date_from')[0]).toBe('Fri 13 Nov → Tue 17 Nov 2026');
 
     // A first trip after the last one pulls the last one along, 8 weeks later.
-    component.searchForm.controls.date_from.setValue('2027-01-22');
-    await harness.fixture.whenStable();
+    await fill('date_from', '2027-01-22');
     expect(select('date_to').value).toBe('2027-03-19');
   });
 
@@ -151,6 +170,7 @@ describe('FlightSearchComponent', () => {
     search.flush([]);
     await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/search/trips');
+    expect(TestBed.inject(SearchResults).trips()).toEqual([]);
   });
 
   it('saves the chosen trip and lists it under saved routes', async () => {

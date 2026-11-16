@@ -2,19 +2,19 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { FlightResultsComponent } from './flight-results';
+import { FlightResultsPage } from './flight-results-page';
 
-describe('FlightResultsComponent', () => {
-  let component: FlightResultsComponent;
-  let fixture: ComponentFixture<FlightResultsComponent>;
+describe('FlightResultsPage', () => {
+  let component: FlightResultsPage;
+  let fixture: ComponentFixture<FlightResultsPage>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [FlightResultsComponent],
+      imports: [FlightResultsPage],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(FlightResultsComponent);
+    fixture = TestBed.createComponent(FlightResultsPage);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

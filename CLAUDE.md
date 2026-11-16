@@ -34,7 +34,8 @@ npm install
 npm start                                     # ng serve on :4200
 npm run build
 npm test                                      # ng test (Vitest + jsdom)
-npx ng test --include src/app/services/flight.spec.ts   # single spec file
+npx ng test --include src/app/services/trip-selection.spec.ts   # single spec file
+npm run lint                                  # ng lint (angular-eslint, eslint.config.js)
 npx prettier --write src                      # formatting (.prettierrc)
 npm run build:map                             # regenerate public/maps/europe.json (after upgrading world-atlas)
 ```
@@ -94,7 +95,8 @@ npm run build:map                             # regenerate public/maps/europe.js
 - Angular standalone components (no NgModules). Each feature is a component folder in `src/app/components/`, HTTP calls live in services in `src/app/services/`, and routes are registered in `app.routes.ts`.
 - The app is **zoneless** (`provideZonelessChangeDetection()`), so UI updates must come from signals or template events, not zone.js-triggered change detection.
 - **Routes, map and nav bar UI rules:** see `frontend/docs/routes-and-map.md`. Update it when you change how these screens behave.
-- **Pages:** a nav bar (`components/nav-bar/`) links two pages. **Routes** (`/`, `components/routes-page/`) is a full-screen map with a sidebar. **Search** (`/search`, `components/flight-search/`) has the dates and the price search. One-way results are at `/search/results`, and round trips on set weekdays at `/search/trips` (`components/trip-results/`). Weekday presets and the period maths are in `services/trip-period.ts`.
+- **Pages:** a nav bar (`components/nav-bar/`) links two pages. **Routes** (`/`, `components/routes-page/`) is a full-screen map with a sidebar. **Search** (`/search`, `components/search-page/`) has the dates and the price search. One-way results are at `/search/results` (`components/flight-results-page/`), and round trips on set weekdays at `/search/trips` (`components/trip-results-page/`). Both read the last search from `SearchResults` (`services/search-results.ts`), in memory only. Pages are lazy-loaded in `app.routes.ts`. Weekday presets and the period maths are in `services/trip-period.ts`.
+- **HTTP:** `FlightHttpClient` (`/flights/*`) and `NetworkHttpClient` (`/network/*`, cached for the session) are stateless wrappers around `HttpClient`. `MapData` loads the static map shapes.
 - **Trip state:** `TripSelection` (`services/trip-selection.ts`) is the single source of truth for the trip, airport first: `origins` (1 to 3 airports), then either `destination` (an airport) or `destinationCountry` ("any airport in a country", which maps to a `destination_country` search).
   - `origin` is the first, main departure airport; destinations and map lines come from it.
   - Extra departures can only be added once a destination is chosen, and must fly there. Which airports do is read from the destination country's routes.
@@ -102,7 +104,7 @@ npm run build:map                             # regenerate public/maps/europe.js
   - Every view reads and writes this store, not its own state: the From/To boxes (`components/trip-fields/`), the destination list and the map.
   - `syncTripWithUrl()` (`services/trip-url.ts`) mirrors the trip into the query params (`?from=CGN&to=PMI`, `&to_country=ES`, or `?from=CGN,NRN` for several departures) and restores it on load. Call it from each page's constructor. Other in-memory data (search results) is still lost on reload.
 - **Airport search:** `components/airport-search/` is a reusable ARIA combobox. Matching ignores accents and case, and checks names, cities, codes and countries.
-- **Saved routes:** `SavedRoutes` (`services/saved-routes.ts`) keeps the user's saved trips in `localStorage` (key `cheap-flights.saved-routes.v2`; v1 routes, with a single `origin`, are migrated on first read). There are no accounts, so routes live in that browser only.
+- **Saved routes:** `SavedRoutes` (`services/saved-routes.ts`) keeps the user's saved trips in `localStorage`, reached through the `BROWSER_STORAGE` token (`services/browser-storage.ts`) (key `cheap-flights.saved-routes.v2`; v1 routes, with a single `origin`, are migrated on first read). There are no accounts, so routes live in that browser only.
   - Every storage access is wrapped in try/catch, and stored entries are validated on read. When you change the `SavedRoute` shape, bump the key version.
   - Choosing a saved route calls `TripSelection.applyRoute()`.
   - `toFile()` / `importFile()` download and upload them as a JSON file of codes only (`ROUTES_FILE_VERSION`). Names are rebuilt from the loaded airports on upload, and unknown routes are skipped.
@@ -110,8 +112,52 @@ npm run build:map                             # regenerate public/maps/europe.js
   - It fills its parent: a `ResizeObserver` sets the viewBox to the element's size, so one user unit is one CSS pixel before zooming. jsdom has no `ResizeObserver`, so tests use 800×600.
   - Pan and zoom come from `d3-zoom`, applied as a transform on one `<g>`. Dot radius, text size and arrow size are divided by the zoom `k`, so they stay the same size on screen. The map zooms to the trip whenever it changes.
   - Airport names are placed to avoid collisions, recomputed when a zoom gesture ends. Colors come from the `--color-map-*` and other tokens.
-- **Flags:** SVGs from the `flag-icons` package, copied as static assets to `flags/<iso2>.svg` (see `angular.json` assets). Show them with `<img src="flags/pt.svg" alt="">`. Don't use the package's CSS: its 4:3 and 1:1 flag folders reuse the same file names, which breaks `ng serve` and `ng test`.
+- **Flags:** SVGs from the `flag-icons` package, copied as static assets to `flags/<iso2>.svg` (see `angular.json` assets). Show them with the `flagUrl` pipe (`pipes/flag-url-pipe.ts`): `<img [src]="country | flagUrl" alt="" />`. Don't use the package's CSS: its 4:3 and 1:1 flag folders reuse the same file names, which breaks `ng serve` and `ng test`.
 - The app is in English: all user-facing text, code comments and `<html lang="en">`.
+
+### Frontend rules (apply to all frontend code)
+
+`npm run lint` (angular-eslint) enforces most of these; the rest are review rules.
+
+**Components**
+- Standalone by default: don't write `standalone: true`, never add an `NgModule`. Every component sets `changeDetection: ChangeDetectionStrategy.OnPush`.
+- Inject with `inject()` in field initialisers, never constructor parameters. Injected internals are `private readonly`. Members the template reads (signals, `computed`, event handlers) are `protected`. Only `input()`/`output()` are public, and they are `readonly`.
+- Avoid lifecycle hooks: put setup in the constructor, derived state in `computed()`, browser-only setup (`ResizeObserver`, measuring) in `afterNextRender()`, and cleanup in `DestroyRef`/`takeUntilDestroyed()`.
+- Lazy-load routed pages with `loadComponent` in `app.routes.ts`.
+
+**Naming**
+- No `Component`/`Service` suffixes: `TripMap`, `SavedRoutes`. Routed pages end in `Page` and live in a `*-page/` folder (`SearchPage`, `search-page/search-page.ts`). Wrappers around the backend are `*HttpClient`. Pipes are `*Pipe` in `pipes/*-pipe.ts`. When a component and a service would share a name, the component gets the more specific one (`SavedRoutesList` vs `SavedRoutes`).
+- Methods that call an API or change state use verbs such as `fetch`, `search`, `save`, `select`, `add`, `remove`, `toggle` (`fetchAirports()`, not `getAirports()`). Pure checks use `is`/`has`/`can`, pure conversions use `to` (`toHttpParams()`).
+- Whole words, plural names for collections, `<key>To<value>` for `Map`s (`countryToRoutes$`). No `I`/`E` prefixes on interfaces or enums.
+
+**State and reactivity**
+- Signals first: `signal()` for local state, `computed()` for anything derived, `.set()`/`.update()` with new objects and arrays (never mutate in place). Shared state lives in root signal stores (`TripSelection`, `SavedRoutes`, `SearchResults`) that expose read-only signals.
+- HTTP clients are stateless and return observables. The caller stores results in a store.
+- `effect()` only syncs signals with non-signal APIs (reactive forms, the router, d3, storage). Never use it to copy one signal into another; use `computed()`/`linkedSignal()`.
+- RxJS is for event streams and async orchestration. Clean up manual subscriptions with `takeUntilDestroyed()`.
+- Use `HttpClient` for searches the user starts (button clicks). New reactive reads may use `httpResource()`/`rxResource()`. Planned: move the airports, routes and map-shape loading (now manual `subscribe()` with loading/error signals) to resources.
+
+**Templates**
+- Built-in control flow only (`@if`, `@for` with a stable `track` key, never `$index` when items have an id, `@switch`). Use `[class.x]`/`[style.x]`, not `ngClass`/`ngStyle`. Use self-closing tags for components without content.
+- No method calls in templates except signal reads and event handlers. Precompute view models in `computed()` (e.g. `TripResultsPage.rows`, `TripMap.airportViews`) or use a pure pipe (`flagUrl`).
+- Presentational components take lean view models (`SearchOption`, `Pick<…>`), not whole API DTOs.
+- No `!` in templates; narrow with `@if (x(); as value)`.
+
+**Platform access**
+- Never touch `window`, `document`, `navigator` or `localStorage` directly. Use `inject(DOCUMENT)`, `ViewportScroller`, `BROWSER_STORAGE`, or `afterNextRender()` for browser-only work. Tests then stub these instead of sniffing jsdom.
+
+**Forms**
+- Typed reactive forms (`fb.nonNullable.group`). Read controls as `form.controls.name`, never `form.get('name')`. Submit with `(ngSubmit)` on the `<form>`.
+- Form state the template shows (errors, touched) comes from `computed()`s that read `toSignal(form.events)`. A control's touched changes don't reach the group's `events`, so merge that control's `events` too.
+
+**TypeScript**
+- `strict` and `strictTemplates` are on. Never use `any` (use `unknown` and narrow). Avoid `!` outside tests. Prefer literal unions (`Weekday`, `TripType`) to `string`.
+- Data shapes are `interface`/`type`, never classes.
+
+**Tests**
+- Blackbox: render the page or component, act through the DOM (click, type, `dispatchEvent`), and assert on the DOM. Don't read or call `protected` members through `componentInstance`. Await `fixture.whenStable()`, never `detectChanges()`.
+
+**Comments** explain *why*, not *what*. Each `TODO`/`FIXME` names an issue (`// TODO #12: …`).
 
 ### UI/UX design system (apply to all frontend styling)
 

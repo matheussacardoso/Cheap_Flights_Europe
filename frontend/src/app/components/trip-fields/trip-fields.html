@@ -45,7 +45,7 @@
           <li class="chip">
             <img
               class="flag"
-              [src]="'flags/' + extra.airport.countryCode.toLowerCase() + '.svg'"
+              [src]="extra.airport.countryCode | flagUrl"
               alt=""
               width="24"
               height="16"

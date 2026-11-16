@@ -3,7 +3,7 @@
 
   <a routerLink="/search" class="btn btn-secondary btn-back">← New search</a>
 
-  @if (flights.length === 0) {
+  @if (flights().length === 0) {
     <p class="muted">No flights found, or your search session expired.</p>
   } @else {
     <table>
@@ -17,7 +17,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (flight of flights; track flight.flightNumber + flight.departureTime) {
+        @for (flight of flights(); track flight.flightNumber + flight.departureTime) {
           <tr>
             <td>{{ flight.flightNumber }}</td>
             <td>{{ flight.origin }}</td>

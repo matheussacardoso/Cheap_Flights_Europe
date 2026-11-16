@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { BROWSER_STORAGE } from './browser-storage';
 import { MAX_ORIGINS, TripSelection } from './trip-selection';
 
 /** A trip the user saved to search again later. Stored in this browser only (no account). */
@@ -51,9 +52,10 @@ export interface ImportResult {
  */
 @Injectable({ providedIn: 'root' })
 export class SavedRoutes {
-  private trip = inject(TripSelection);
+  private readonly trip = inject(TripSelection);
+  private readonly storage = inject(BROWSER_STORAGE);
 
-  readonly routes = signal<SavedRoute[]>(readStorage());
+  readonly routes = signal<SavedRoute[]>(readStorage(this.storage));
 
   /** The trip currently chosen, as a route that can be saved; null if incomplete. */
   readonly current = computed<SavedRoute | null>(() =>
@@ -176,7 +178,7 @@ export class SavedRoutes {
   private update(routes: SavedRoute[]): void {
     this.routes.set(routes);
     try {
-      localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify(routes));
+      this.storage?.setItem(SAVED_ROUTES_KEY, JSON.stringify(routes));
     } catch {
       // Storage unavailable or full: keep the list for this visit only.
     }
@@ -223,29 +225,33 @@ function asFileRoute(value: unknown): FileRoute | null {
   }
   const { origins, destination, destinationCountry } = value as Record<string, unknown>;
   const code = (text: unknown) => (typeof text === 'string' ? text.trim().toUpperCase() : null);
-  if (!Array.isArray(origins) || !origins.every((origin) => code(origin))) {
+  const originCodes = Array.isArray(origins) ? origins.map(code) : [];
+  if (!originCodes.length || !originCodes.every((origin): origin is string => !!origin)) {
     return null;
   }
   if (destination !== null && destination !== undefined && !code(destination)) {
     return null;
   }
   return {
-    origins: [...new Set(origins.map((origin) => code(origin)!))],
+    origins: [...new Set(originCodes)],
     destination: code(destination),
     destinationCountry: code(destinationCountry) ?? '',
   };
 }
 
-function readStorage(): SavedRoute[] {
+function readStorage(storage: Storage | null): SavedRoute[] {
+  if (!storage) {
+    return [];
+  }
   try {
-    const current = parse(localStorage.getItem(SAVED_ROUTES_KEY));
+    const current = parse(storage.getItem(SAVED_ROUTES_KEY));
     if (current) {
       return current.filter(isSavedRoute);
     }
     // First visit since several departures: bring the v1 routes over (one origin each).
-    const v1 = (parse(localStorage.getItem(SAVED_ROUTES_KEY_V1)) ?? []).flatMap(fromV1);
+    const v1 = (parse(storage.getItem(SAVED_ROUTES_KEY_V1)) ?? []).flatMap(fromV1);
     if (v1.length) {
-      localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify(v1));
+      storage.setItem(SAVED_ROUTES_KEY, JSON.stringify(v1));
     }
     return v1;
   } catch {

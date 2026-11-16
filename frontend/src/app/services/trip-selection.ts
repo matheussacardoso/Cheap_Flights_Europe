@@ -1,5 +1,5 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
-import { Airport, NetworkService, Route } from './network';
+import { Airport, NetworkHttpClient, Route } from './network-http-client';
 
 export interface Country {
   code: string;
@@ -60,7 +60,7 @@ export function distanceKm(a: Airport, b: Airport): number {
  */
 @Injectable({ providedIn: 'root' })
 export class TripSelection {
-  private network = inject(NetworkService);
+  private readonly network = inject(NetworkHttpClient);
 
   readonly airports = signal<Airport[]>([]);
   /** Routes from every airport of each loaded country (the API serves them per country). */
@@ -210,7 +210,7 @@ export class TripSelection {
     }
     this.loadingAirports.set(true);
     this.error.set('');
-    this.network.getAirports().subscribe({
+    this.network.fetchAirports().subscribe({
       next: (airports) => {
         this.airports.set(airports);
         this.loadingAirports.set(false);
@@ -356,7 +356,7 @@ export class TripSelection {
       return;
     }
     this.loadingCountries.update((set) => new Set(set).add(country));
-    this.network.getRoutes(country).subscribe({
+    this.network.fetchRoutes(country).subscribe({
       next: (routes) => {
         this.routesByCountry.update((all) => ({ ...all, [country]: routes }));
         this.stopLoading(country);

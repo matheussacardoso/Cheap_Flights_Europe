@@ -1,13 +1,14 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import {
   AlternativeOrigin,
   MAX_ORIGINS,
   TripSelection,
   distanceKm,
 } from '../../services/trip-selection';
-import { LoadingIndicatorComponent } from '../loading-indicator/loading-indicator';
+import { FlagUrlPipe } from '../../pipes/flag-url-pipe';
+import { LoadingIndicator } from '../loading-indicator/loading-indicator';
 import {
-  AirportSearchComponent,
+  AirportSearch,
   SearchOption,
   airportOption,
   countryOption,
@@ -22,36 +23,36 @@ const SUGGESTIONS = 3;
  */
 @Component({
   selector: 'app-trip-fields',
-  standalone: true,
-  imports: [AirportSearchComponent, LoadingIndicatorComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [AirportSearch, FlagUrlPipe, LoadingIndicator],
   templateUrl: './trip-fields.html',
   styleUrl: './trip-fields.css',
   host: { '[class.is-row]': "layout() === 'row'" },
 })
-export class TripFieldsComponent {
-  readonly trip = inject(TripSelection);
+export class TripFields {
+  protected readonly trip = inject(TripSelection);
 
   /** `stack` for the sidebar, `row` for the search form. */
-  layout = input<'stack' | 'row'>('stack');
+  readonly layout = input<'stack' | 'row'>('stack');
 
-  readonly fromOptions = computed(() =>
+  protected readonly fromOptions = computed(() =>
     [...this.trip.airports()]
       .sort((a, b) => a.city.localeCompare(b.city) || a.name.localeCompare(b.name))
       .map(airportOption),
   );
 
   /** Direct destinations, plus "any airport" in each country that has some. */
-  readonly toOptions = computed(() => [
+  protected readonly toOptions = computed(() => [
     ...this.trip.reachableCountries().map(countryOption),
     ...this.trip.destinations().map(airportOption),
   ]);
 
-  readonly fromValue = computed(() => {
+  protected readonly fromValue = computed(() => {
     const airport = this.trip.originAirport();
     return airport ? airportOption(airport) : null;
   });
 
-  readonly toValue = computed(() => {
+  protected readonly toValue = computed(() => {
     const airport = this.trip.destinationAirport();
     if (airport) {
       return airportOption(airport);
@@ -60,7 +61,7 @@ export class TripFieldsComponent {
     return country ? countryOption(country) : null;
   });
 
-  readonly toHint = computed(() => {
+  protected readonly toHint = computed(() => {
     if (!this.trip.origin()) {
       return 'Choose where you fly from first.';
     }
@@ -71,10 +72,10 @@ export class TripFieldsComponent {
     return `${count} direct ${count === 1 ? 'destination' : 'destinations'}`;
   });
 
-  readonly maxOrigins = MAX_ORIGINS;
+  protected readonly maxOrigins = MAX_ORIGINS;
 
   /** The extra departure airports already chosen, with their distance from the first. */
-  readonly extraOrigins = computed(() => {
+  protected readonly extraOrigins = computed(() => {
     const first = this.trip.originAirport();
     return this.trip
       .originAirports()
@@ -86,7 +87,7 @@ export class TripFieldsComponent {
   });
 
   /** The closest airports that fly to the destination, as one-click suggestions. */
-  readonly suggestions = computed(() =>
+  protected readonly suggestions = computed(() =>
     this.trip
       .nearbyOrigins()
       .slice(0, SUGGESTIONS)
@@ -94,14 +95,14 @@ export class TripFieldsComponent {
   );
 
   /** Every airport that flies to the destination, closest first, for the "Add" box. */
-  readonly alternativeOptions = computed(() =>
+  protected readonly alternativeOptions = computed(() =>
     this.trip.alternativeOrigins().map(({ airport, km }: AlternativeOrigin) => ({
       ...airportOption(airport),
       subtitle: `${Math.round(km)} km away · ${airport.countryName} · ${airport.code}`,
     })),
   );
 
-  readonly destinationName = computed(() => {
+  protected readonly destinationName = computed(() => {
     const airport = this.trip.destinationAirport();
     if (airport) {
       return airport.name;
@@ -110,15 +111,15 @@ export class TripFieldsComponent {
     return country?.name ?? 'the destination';
   });
 
-  addOrigin(code: string): void {
+  protected addOrigin(code: string): void {
     this.trip.addOrigin(code);
   }
 
-  chooseOrigin(option: SearchOption): void {
+  protected chooseOrigin(option: SearchOption): void {
     this.trip.selectOrigin(option.code);
   }
 
-  chooseDestination(option: SearchOption): void {
+  protected chooseDestination(option: SearchOption): void {
     if (option.kind === 'country') {
       this.trip.selectDestinationCountry(option.code);
     } else {

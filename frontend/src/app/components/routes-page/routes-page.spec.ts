@@ -13,12 +13,12 @@ import {
   answerRoutes,
   routesFor,
 } from '../../testing/network-fixtures';
-import { RoutesPageComponent } from './routes-page';
+import { RoutesPage } from './routes-page';
 
 @Component({ template: '' })
 class SearchStub {}
 
-describe('RoutesPageComponent', () => {
+describe('RoutesPage', () => {
   let http: HttpTestingController;
   let harness: RouterTestingHarness;
   let element: HTMLElement;
@@ -29,7 +29,7 @@ describe('RoutesPageComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
-          { path: '', component: RoutesPageComponent },
+          { path: '', component: RoutesPage },
           { path: 'search', component: SearchStub },
         ]),
         provideHttpClient(),
@@ -39,7 +39,7 @@ describe('RoutesPageComponent', () => {
     http = TestBed.inject(HttpTestingController);
     trip = TestBed.inject(TripSelection);
     harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl(url, RoutesPageComponent);
+    await harness.navigateByUrl(url, RoutesPage);
     http.expectOne((req) => req.url.endsWith('/network/airports')).flush(AIRPORTS);
     http.expectOne(MAP_URL).flush({ type: 'FeatureCollection', features: [] });
     await harness.fixture.whenStable();

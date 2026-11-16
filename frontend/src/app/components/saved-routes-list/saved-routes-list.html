@@ -2,28 +2,23 @@
   <h2 id="saved-routes-title" class="section-title">Saved routes</h2>
   @if (saved.routes().length) {
     <ul class="route-list">
-      @for (route of saved.routes(); track route.id) {
-        <li class="route" [class.is-current]="saved.current()?.id === route.id">
+      @for (item of items(); track item.route.id) {
+        @let route = item.route;
+        <li class="route" [class.is-current]="item.isCurrent">
           <button
             type="button"
             class="route-button"
-            [attr.aria-label]="name(route)"
-            [attr.aria-pressed]="saved.current()?.id === route.id"
+            [attr.aria-label]="item.name"
+            [attr.aria-pressed]="item.isCurrent"
             [attr.aria-disabled]="!trip.airports().length || null"
             (click)="use(route)"
           >
-            <img
-              class="flag"
-              [src]="'flags/' + route.originCountry.toLowerCase() + '.svg'"
-              alt=""
-              width="24"
-              height="16"
-            />
+            <img class="flag" [src]="route.originCountry | flagUrl" alt="" width="24" height="16" />
             <span>{{ route.originName }}</span>
             <span class="arrow" aria-hidden="true">→</span>
             <img
               class="flag"
-              [src]="'flags/' + route.destinationCountry.toLowerCase() + '.svg'"
+              [src]="route.destinationCountry | flagUrl"
               alt=""
               width="24"
               height="16"
@@ -33,7 +28,7 @@
           <button
             type="button"
             class="remove-button"
-            [attr.aria-label]="'Remove ' + name(route)"
+            [attr.aria-label]="'Remove ' + item.name"
             title="Remove"
             (click)="remove(route)"
           >

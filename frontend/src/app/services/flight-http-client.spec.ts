@@ -1,16 +1,16 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { FlightService } from './flight';
+import { FlightHttpClient } from './flight-http-client';
 
-describe('FlightService', () => {
-  let service: FlightService;
+describe('FlightHttpClient', () => {
+  let service: FlightHttpClient;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
-    service = TestBed.inject(FlightService);
+    service = TestBed.inject(FlightHttpClient);
   });
 
   it('should be created', () => {

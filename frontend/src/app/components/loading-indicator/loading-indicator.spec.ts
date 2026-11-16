@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { LoadingIndicatorComponent } from './loading-indicator';
+import { LoadingIndicator } from './loading-indicator';
 
-describe('LoadingIndicatorComponent', () => {
+describe('LoadingIndicator', () => {
   async function render(inputs: Record<string, unknown>): Promise<HTMLElement> {
-    const fixture = TestBed.createComponent(LoadingIndicatorComponent);
+    const fixture = TestBed.createComponent(LoadingIndicator);
     for (const [name, value] of Object.entries(inputs)) {
       fixture.componentRef.setInput(name, value);
     }

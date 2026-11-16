@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 /**
  * Shows that something is running and what: a spinner, a title ("Finding the cheapest dates")
@@ -7,13 +7,13 @@ import { Component, input } from '@angular/core';
  */
 @Component({
   selector: 'app-loading-indicator',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './loading-indicator.html',
   styleUrl: './loading-indicator.css',
   host: { '[class.is-compact]': 'compact()' },
 })
-export class LoadingIndicatorComponent {
-  title = input.required<string>();
-  detail = input('');
-  compact = input(false);
+export class LoadingIndicator {
+  readonly title = input.required<string>();
+  readonly detail = input('');
+  readonly compact = input(false);
 }

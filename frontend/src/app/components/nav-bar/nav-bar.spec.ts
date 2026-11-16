@@ -2,12 +2,12 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { NavBarComponent } from './nav-bar';
+import { NavBar } from './nav-bar';
 
-@Component({ imports: [NavBarComponent], template: '<app-nav-bar />' })
+@Component({ imports: [NavBar], template: '<app-nav-bar />' })
 class Page {}
 
-describe('NavBarComponent', () => {
+describe('NavBar', () => {
   async function linksAt(url: string): Promise<Record<string, string | null>> {
     TestBed.configureTestingModule({
       providers: [

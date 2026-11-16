@@ -1,5 +1,5 @@
 import { HttpTestingController } from '@angular/common/http/testing';
-import { Airport, Route } from '../services/network';
+import { Airport, Route } from '../services/network-http-client';
 
 export function airport(
   code: string,

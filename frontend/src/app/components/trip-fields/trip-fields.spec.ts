@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Airport } from '../../services/network';
+import { Airport } from '../../services/network-http-client';
 import { TripSelection } from '../../services/trip-selection';
 import {
   AIRPORTS,
@@ -11,26 +11,26 @@ import {
   answerRoutes,
   routesFor,
 } from '../../testing/network-fixtures';
-import { TripFieldsComponent } from './trip-fields';
+import { TripFields } from './trip-fields';
 
 /** Braga: 44 km from Porto, so it is suggested as a nearby departure. */
 const BRAGA: Airport = airport('BGZ', 'PT', 'Portugal', [41.58, -8.42]);
 
-describe('TripFieldsComponent: extra departure airports', () => {
-  let fixture: ComponentFixture<TripFieldsComponent>;
+describe('TripFields: extra departure airports', () => {
+  let fixture: ComponentFixture<TripFields>;
   let element: HTMLElement;
   let http: HttpTestingController;
   let trip: TripSelection;
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
-      imports: [TripFieldsComponent],
+      imports: [TripFields],
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpTestingController);
     trip = TestBed.inject(TripSelection);
     trip.airports.set([...AIRPORTS, BRAGA]);
-    fixture = TestBed.createComponent(TripFieldsComponent);
+    fixture = TestBed.createComponent(TripFields);
     element = fixture.nativeElement;
     await fixture.whenStable();
   });

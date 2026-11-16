@@ -17,11 +17,11 @@ export const MAP_URL = 'maps/europe.json';
 
 /** Country shapes for the trip map, fetched once and only when the map is first shown. */
 @Injectable({ providedIn: 'root' })
-export class MapDataService {
-  private http = inject(HttpClient);
+export class MapData {
+  private readonly http = inject(HttpClient);
   private shapes$?: Observable<FeatureCollection<MultiPolygon, CountryShapeProperties>>;
 
-  getCountryShapes(): Observable<FeatureCollection<MultiPolygon, CountryShapeProperties>> {
+  fetchCountryShapes(): Observable<FeatureCollection<MultiPolygon, CountryShapeProperties>> {
     this.shapes$ ??= this.http
       .get<FeatureCollection<MultiPolygon, CountryShapeProperties>>(MAP_URL)
       // shareReplay drops a failed request, so the next call retries.
