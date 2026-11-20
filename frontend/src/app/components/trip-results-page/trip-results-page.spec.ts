@@ -2,10 +2,11 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { FlightResponse, FlightService, TripResponse } from '../../services/flight';
+import { FlightResponse, TripResponse } from '../../services/flight-http-client';
+import { SearchResults } from '../../services/search-results';
 import { TripSelection } from '../../services/trip-selection';
 import { AIRPORTS } from '../../testing/network-fixtures';
-import { TripResultsComponent } from './trip-results';
+import { TripResultsPage } from './trip-results-page';
 
 function flight(origin: string, destination: string, time: string, price: number): FlightResponse {
   return {
@@ -31,15 +32,15 @@ const TRIPS: TripResponse[] = [
   },
 ];
 
-describe('TripResultsComponent', () => {
+describe('TripResultsPage', () => {
   async function render(trips: TripResponse[]): Promise<HTMLElement> {
     TestBed.configureTestingModule({
-      imports: [TripResultsComponent],
+      imports: [TripResultsPage],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     });
-    TestBed.inject(FlightService).tripResults = trips;
+    TestBed.inject(SearchResults).setTrips(trips);
     TestBed.inject(TripSelection).airports.set(AIRPORTS);
-    const fixture = TestBed.createComponent(TripResultsComponent);
+    const fixture = TestBed.createComponent(TripResultsPage);
     await fixture.whenStable();
     return fixture.nativeElement;
   }

@@ -85,18 +85,16 @@
       </g>
 
       <g class="labels" aria-hidden="true">
-        @for (country of countries(); track $index) {
-          @if (showLabel(country)) {
-            <text
-              class="label"
-              [attr.x]="country.labelX"
-              [attr.y]="country.labelY"
-              [attr.font-size]="labelSize()"
-              [attr.stroke-width]="labelSize() / 4"
-            >
-              {{ country.name }}
-            </text>
-          }
+        @for (country of countryLabels(); track $index) {
+          <text
+            class="label"
+            [attr.x]="country.labelX"
+            [attr.y]="country.labelY"
+            [attr.font-size]="labelSize()"
+            [attr.stroke-width]="labelSize() / 4"
+          >
+            {{ country.name }}
+          </text>
         }
       </g>
 
@@ -112,7 +110,7 @@
       </g>
 
       <g class="airports">
-        @for (airport of airports(); track airport.code) {
+        @for (airport of airportViews(); track airport.code) {
           <g
             [attr.class]="'airport is-' + airport.status"
             [attr.role]="airport.selectable ? 'button' : null"
@@ -122,14 +120,14 @@
             (keydown.enter)="select(airport, $event)"
             (keydown.space)="select(airport, $event)"
           >
-            <title>{{ airportTitle(airport) }}</title>
+            <title>{{ airport.title }}</title>
             <circle [attr.cx]="airport.x" [attr.cy]="airport.y" [attr.r]="dotRadius()" />
             @if (airport.namePlacement) {
               <text
                 class="airport-name"
-                [attr.text-anchor]="nameAnchor(airport)"
-                [attr.x]="nameX(airport)"
-                [attr.y]="nameY(airport)"
+                [attr.text-anchor]="airport.nameAnchor"
+                [attr.x]="airport.nameX"
+                [attr.y]="airport.nameY"
                 [attr.font-size]="labelSize()"
                 [attr.stroke-width]="labelSize() / 4"
                 aria-hidden="true"

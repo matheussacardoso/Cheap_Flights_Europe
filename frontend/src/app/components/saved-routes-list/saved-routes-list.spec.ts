@@ -4,7 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SAVED_ROUTES_KEY, SavedRoute } from '../../services/saved-routes';
 import { TripSelection } from '../../services/trip-selection';
 import { AIRPORTS, PT_ROUTES, answerRoutes } from '../../testing/network-fixtures';
-import { SavedRoutesComponent } from './saved-routes';
+import { SavedRoutesList } from './saved-routes-list';
 
 const ROUTES: SavedRoute[] = [
   {
@@ -27,8 +27,8 @@ const ROUTES: SavedRoute[] = [
   },
 ];
 
-describe('SavedRoutesComponent', () => {
-  let fixture: ComponentFixture<SavedRoutesComponent>;
+describe('SavedRoutesList', () => {
+  let fixture: ComponentFixture<SavedRoutesList>;
   let element: HTMLElement;
   let http: HttpTestingController;
   let trip: TripSelection;
@@ -36,13 +36,13 @@ describe('SavedRoutesComponent', () => {
   async function render(routes: SavedRoute[]): Promise<void> {
     localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify(routes));
     await TestBed.configureTestingModule({
-      imports: [SavedRoutesComponent],
+      imports: [SavedRoutesList],
       providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     trip = TestBed.inject(TripSelection);
     trip.airports.set(AIRPORTS);
-    fixture = TestBed.createComponent(SavedRoutesComponent);
+    fixture = TestBed.createComponent(SavedRoutesList);
     element = fixture.nativeElement;
     await fixture.whenStable();
   }

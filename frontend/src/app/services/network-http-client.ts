@@ -23,26 +23,26 @@ export interface Route {
 
 /** Ryanair's route network: airports and direct routes. Responses are cached for the session. */
 @Injectable({ providedIn: 'root' })
-export class NetworkService {
-  private http = inject(HttpClient);
+export class NetworkHttpClient {
+  private readonly http = inject(HttpClient);
   private airports$?: Observable<Airport[]>;
-  private routes$ = new Map<string, Observable<Route[]>>();
+  private readonly countryToRoutes$ = new Map<string, Observable<Route[]>>();
 
-  getAirports(): Observable<Airport[]> {
+  fetchAirports(): Observable<Airport[]> {
     this.airports$ ??= this.http
       .get<Airport[]>(`${API_BASE_URL}/network/airports`)
       .pipe(shareReplay(1));
     return this.airports$;
   }
 
-  getRoutes(originCountry: string): Observable<Route[]> {
-    let routes$ = this.routes$.get(originCountry);
+  fetchRoutes(originCountry: string): Observable<Route[]> {
+    let routes$ = this.countryToRoutes$.get(originCountry);
     if (!routes$) {
       const params = new HttpParams().set('origin_country', originCountry);
       routes$ = this.http
         .get<Route[]>(`${API_BASE_URL}/network/routes`, { params })
         .pipe(shareReplay(1));
-      this.routes$.set(originCountry, routes$);
+      this.countryToRoutes$.set(originCountry, routes$);
     }
     return routes$;
   }

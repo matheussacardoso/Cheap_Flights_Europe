@@ -1,12 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Airport } from '../../services/network';
+import { Airport } from '../../services/network-http-client';
 import { airport } from '../../testing/network-fixtures';
-import {
-  AirportSearchComponent,
-  SearchOption,
-  airportOption,
-  countryOption,
-} from './airport-search';
+import { AirportSearch, SearchOption, airportOption, countryOption } from './airport-search';
 
 const MALAGA: Airport = { ...airport('AGP', 'ES', 'Spain'), name: 'Málaga', city: 'Málaga' };
 const MADRID: Airport = { ...airport('MAD', 'ES', 'Spain'), name: 'Madrid', city: 'Madrid' };
@@ -17,15 +12,15 @@ const OPTIONS: SearchOption[] = [
   ...[MADRID, MALAGA, PORTO].map(airportOption),
 ];
 
-describe('AirportSearchComponent', () => {
-  let fixture: ComponentFixture<AirportSearchComponent>;
+describe('AirportSearch', () => {
+  let fixture: ComponentFixture<AirportSearch>;
   let input: HTMLInputElement;
   let chosen: SearchOption[];
   let cleared: number;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [AirportSearchComponent] }).compileComponents();
-    fixture = TestBed.createComponent(AirportSearchComponent);
+    await TestBed.configureTestingModule({ imports: [AirportSearch] }).compileComponents();
+    fixture = TestBed.createComponent(AirportSearch);
     fixture.componentRef.setInput('label', 'To');
     fixture.componentRef.setInput('options', OPTIONS);
     chosen = [];

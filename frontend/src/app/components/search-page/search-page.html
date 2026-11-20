@@ -1,7 +1,7 @@
 <main class="container">
   <h1>Search flight prices</h1>
 
-  <app-saved-routes class="saved" />
+  <app-saved-routes-list class="saved" />
 
   <p class="form-hint">Fields marked * are required.</p>
 
@@ -61,14 +61,14 @@
         <fieldset class="group" aria-describedby="period-summary">
           <legend class="group-title">Days</legend>
           <div class="presets" role="group" aria-label="Common trips">
-            @for (preset of presets; track $index) {
+            @for (option of presets(); track option.key) {
               <button
                 type="button"
                 class="preset"
-                [attr.aria-pressed]="isPreset(preset)"
-                (click)="choosePreset(preset)"
+                [attr.aria-pressed]="option.pressed"
+                (click)="choosePreset(option.preset)"
               >
-                {{ presetLabel(preset) }}
+                {{ option.label }}
               </button>
             }
           </div>
@@ -76,16 +76,16 @@
             <div class="form-group">
               <label for="depart_day">Leave on</label>
               <select id="depart_day" formControlName="depart_day">
-                @for (day of weekdays; track day) {
-                  <option [value]="day">{{ weekdayName(day) }}</option>
+                @for (day of weekdayOptions; track day.value) {
+                  <option [value]="day.value">{{ day.label }}</option>
                 }
               </select>
             </div>
             <div class="form-group">
               <label for="return_day">Come back on</label>
               <select id="return_day" formControlName="return_day">
-                @for (day of weekdays; track day) {
-                  <option [value]="day">{{ weekdayName(day) }}</option>
+                @for (day of weekdayOptions; track day.value) {
+                  <option [value]="day.value">{{ day.label }}</option>
                 }
               </select>
             </div>
@@ -102,9 +102,10 @@
           <div class="form-group">
             <label for="date_from">First departure *</label>
             <select id="date_from" formControlName="date_from">
-              @for (date of firstDepartures(); track date) {
-                <option [value]="date">
-                  {{ date | date: 'EEE d MMM' }} → {{ returnDate(date) | date: 'EEE d MMM y' }}
+              @for (option of firstDepartures(); track option.date) {
+                <option [value]="option.date">
+                  {{ option.date | date: 'EEE d MMM' }} →
+                  {{ option.returnDate | date: 'EEE d MMM y' }}
                 </option>
               }
             </select>
@@ -115,17 +116,18 @@
             <select
               id="date_to"
               formControlName="date_to"
-              [attr.aria-invalid]="showError('date_to')"
-              [attr.aria-describedby]="showError('date_to') ? 'date_to-error' : null"
+              [attr.aria-invalid]="!!dateToError()"
+              [attr.aria-describedby]="dateToError() ? 'date_to-error' : null"
             >
-              @for (date of lastDepartures(); track date) {
-                <option [value]="date">
-                  {{ date | date: 'EEE d MMM' }} → {{ returnDate(date) | date: 'EEE d MMM y' }}
+              @for (option of lastDepartures(); track option.date) {
+                <option [value]="option.date">
+                  {{ option.date | date: 'EEE d MMM' }} →
+                  {{ option.returnDate | date: 'EEE d MMM y' }}
                 </option>
               }
             </select>
-            @if (showError('date_to')) {
-              <p id="date_to-error" class="field-error">{{ errorFor('date_to') }}</p>
+            @if (dateToError(); as error) {
+              <p id="date_to-error" class="field-error">{{ error }}</p>
             }
           </div>
         } @else {
@@ -136,11 +138,11 @@
               type="date"
               formControlName="date_from"
               required
-              [attr.aria-invalid]="showError('date_from')"
-              [attr.aria-describedby]="showError('date_from') ? 'date_from-error' : null"
+              [attr.aria-invalid]="!!dateFromError()"
+              [attr.aria-describedby]="dateFromError() ? 'date_from-error' : null"
             />
-            @if (showError('date_from')) {
-              <p id="date_from-error" class="field-error">{{ errorFor('date_from') }}</p>
+            @if (dateFromError(); as error) {
+              <p id="date_from-error" class="field-error">{{ error }}</p>
             }
           </div>
 

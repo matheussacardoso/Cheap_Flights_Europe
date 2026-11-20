@@ -1,13 +1,7 @@
 <label class="label" [for]="id">{{ label() }}</label>
 <div class="field" [class.is-disabled]="disabled()">
-  @if (value() && !editing()) {
-    <img
-      class="flag"
-      [src]="'flags/' + value()!.countryCode.toLowerCase() + '.svg'"
-      alt=""
-      width="24"
-      height="16"
-    />
+  @if (!editing() && value(); as chosen) {
+    <img class="flag" [src]="chosen.countryCode | flagUrl" alt="" width="24" height="16" />
   }
   <input
     #box
@@ -47,23 +41,19 @@
 
 <ul class="list" role="listbox" [id]="id + '-list'" [attr.aria-label]="label()" [hidden]="!open()">
   @for (option of results(); track option.kind + option.code; let i = $index) {
+    <!-- Combobox pattern: focus stays in the input, which handles the keys (aria-activedescendant). -->
+    <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
     <li
       role="option"
       class="option"
-      [id]="optionId(i)"
+      [id]="id + '-option-' + i"
       [class.is-active]="i === active()"
       [attr.aria-selected]="i === active()"
       (mousedown)="$event.preventDefault()"
       (click)="choose(option)"
       (mousemove)="active.set(i)"
     >
-      <img
-        class="flag"
-        [src]="'flags/' + option.countryCode.toLowerCase() + '.svg'"
-        alt=""
-        width="24"
-        height="16"
-      />
+      <img class="flag" [src]="option.countryCode | flagUrl" alt="" width="24" height="16" />
       <span class="text">
         <span class="title">{{ option.title }}</span>
         <span class="subtitle">{{ option.subtitle }}</span>

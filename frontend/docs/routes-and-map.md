@@ -36,7 +36,7 @@ The sidebar is split into sections, 24px apart (`--space-6`), with smaller gaps 
 
 New sidebar features (airline or country filters, for example) go in as a new section. Don't put them inside the map.
 
-### Search (`/search`, `components/flight-search/`)
+### Search (`/search`, `components/search-page/`)
 
 A centred card (`.container`). From top to bottom:
 
