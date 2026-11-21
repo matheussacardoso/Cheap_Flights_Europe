@@ -1,4 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatOption } from '@angular/material/core';
+import { MatIconButton } from '@angular/material/button';
+import {
+  MatFormField,
+  MatHint,
+  MatLabel,
+  MatPrefix,
+  MatSuffix,
+} from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatInput } from '@angular/material/input';
 import { FlagUrlPipe } from '../../pipes/flag-url-pipe';
 import { Airport } from '../../services/network-http-client';
 import { Country } from '../../services/trip-selection';
@@ -44,16 +56,29 @@ export function normalise(text: string): string {
 }
 
 const MAX_RESULTS = 50;
-let nextId = 0;
 
 /**
- * A text box that suggests airports (and countries) as you type, following the ARIA combobox
- * pattern: arrow keys move through the list, Enter chooses, Escape closes.
+ * A text box that suggests airports (and countries) as you type: a Material autocomplete, so
+ * the ARIA combobox pattern and the keys come with it (arrows move, Enter chooses, Escape
+ * closes). Matching and ranking are ours: accents and case are ignored, codes rank first.
  */
 @Component({
   selector: 'app-airport-search',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FlagUrlPipe],
+  imports: [
+    FlagUrlPipe,
+    MatAutocomplete,
+    MatAutocompleteTrigger,
+    MatFormField,
+    MatHint,
+    MatIcon,
+    MatIconButton,
+    MatInput,
+    MatLabel,
+    MatOption,
+    MatPrefix,
+    MatSuffix,
+  ],
   templateUrl: './airport-search.html',
   styleUrl: './airport-search.css',
 })
@@ -69,12 +94,12 @@ export class AirportSearch {
   readonly chosen = output<SearchOption>();
   readonly cleared = output<void>();
 
-  protected readonly id = `airport-search-${nextId++}`;
   protected readonly query = signal('');
-  protected readonly open = signal(false);
   /** True while the user is typing; otherwise the box shows the chosen option. */
   protected readonly editing = signal(false);
-  protected readonly active = signal(0);
+
+  /** What the box shows once an option is chosen (Material writes it into the input). */
+  protected readonly displayTitle = (option: SearchOption | null): string => option?.title ?? '';
 
   protected readonly text = computed(() =>
     this.editing() ? this.query() : (this.value()?.title ?? ''),
@@ -98,73 +123,24 @@ export class AirportSearch {
       .map(({ option }) => option);
   });
 
-  protected readonly activeId = computed(() =>
-    this.open() && this.results().length ? this.optionId(this.active()) : null,
-  );
-
+  /** The number of results while typing, for screen readers. */
   protected readonly status = computed(() => {
-    if (!this.open() || !this.editing()) {
+    if (!this.editing()) {
       return '';
     }
     const count = this.results().length;
     return count ? `${count} ${count === 1 ? 'result' : 'results'}` : 'No results';
   });
 
-  private optionId(index: number): string {
-    return `${this.id}-option-${index}`;
-  }
-
+  /** Focus selects the text and lists everything (the list opens with Material). */
   protected onFocus(input: HTMLInputElement): void {
     input.select();
-    this.openList();
+    this.query.set('');
   }
 
   protected onInput(text: string): void {
     this.query.set(text);
     this.editing.set(true);
-    this.active.set(0);
-    this.open.set(true);
-  }
-
-  protected onBlur(): void {
-    this.close();
-  }
-
-  protected onKeydown(event: KeyboardEvent): void {
-    const count = this.results().length;
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        if (!this.open()) {
-          this.openList();
-        } else if (count) {
-          this.active.set((this.active() + 1) % count);
-        }
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        if (!this.open()) {
-          this.openList();
-          this.active.set(Math.max(count - 1, 0));
-        } else if (count) {
-          this.active.set((this.active() - 1 + count) % count);
-        }
-        break;
-      case 'Enter': {
-        const option = this.open() ? this.results()[this.active()] : undefined;
-        if (option) {
-          event.preventDefault();
-          this.choose(option);
-        }
-        break;
-      }
-      case 'Escape':
-        if (this.open() || this.editing()) {
-          event.preventDefault();
-          this.close();
-        }
-        break;
-    }
   }
 
   protected choose(option: SearchOption): void {
@@ -174,22 +150,12 @@ export class AirportSearch {
 
   protected clear(input: HTMLInputElement): void {
     this.cleared.emit();
-    this.query.set('');
-    this.editing.set(false);
+    this.close();
     input.focus();
   }
 
-  private openList(): void {
-    if (this.disabled()) {
-      return;
-    }
-    this.query.set('');
-    this.active.set(0);
-    this.open.set(true);
-  }
-
-  private close(): void {
-    this.open.set(false);
+  /** The list closed (chosen, Escape, or focus left): show the chosen value again. */
+  protected close(): void {
     this.editing.set(false);
     this.query.set('');
   }

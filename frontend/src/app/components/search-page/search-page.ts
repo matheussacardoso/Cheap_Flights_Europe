@@ -16,6 +16,13 @@ import {
   Validators,
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { MatButton } from '@angular/material/button';
+import { MatButtonToggle, MatButtonToggleGroup } from '@angular/material/button-toggle';
+import { MatOption } from '@angular/material/core';
+import { MatError, MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatInput } from '@angular/material/input';
+import { MatSelect } from '@angular/material/select';
 import { Router } from '@angular/router';
 import { Observable, catchError, forkJoin, map, merge, of } from 'rxjs';
 import { BusAvailability } from '../../services/bus-availability';
@@ -87,7 +94,24 @@ function periodValidator(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-search-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, LoadingIndicator, ReactiveFormsModule, SavedRoutesList, TripFields],
+  imports: [
+    DatePipe,
+    LoadingIndicator,
+    MatButton,
+    MatButtonToggle,
+    MatButtonToggleGroup,
+    MatError,
+    MatFormField,
+    MatHint,
+    MatIcon,
+    MatInput,
+    MatLabel,
+    MatOption,
+    MatSelect,
+    ReactiveFormsModule,
+    SavedRoutesList,
+    TripFields,
+  ],
   templateUrl: './search-page.html',
   styleUrl: './search-page.css',
 })
@@ -262,8 +286,21 @@ export class SearchPage {
     });
   }
 
+  /** The preset matching the chosen days, for the toggle group; null when none does. */
+  protected readonly pressedPreset = computed(
+    () => this.presets().find((option) => option.pressed)?.key ?? null,
+  );
+
   protected choosePreset(preset: PeriodPreset): void {
     this.searchForm.patchValue({ depart_day: preset.departDay, return_day: preset.returnDay });
+  }
+
+  /** A preset toggle was pressed. */
+  protected choosePresetKey(key: string): void {
+    const option = this.presets().find((preset) => preset.key === key);
+    if (option) {
+      this.choosePreset(option.preset);
+    }
   }
 
   protected onSearch(): void {

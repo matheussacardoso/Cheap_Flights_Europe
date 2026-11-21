@@ -1,66 +1,65 @@
-<label class="label" [for]="id">{{ label() }}</label>
-<div class="field" [class.is-disabled]="disabled()">
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="field">
+  <mat-label>{{ label() }}</mat-label>
   @if (!editing() && value(); as chosen) {
-    <img class="flag" [src]="chosen.countryCode | flagUrl" alt="" width="24" height="16" />
+    <img
+      matPrefix
+      class="flag"
+      [src]="chosen.countryCode | flagUrl"
+      alt=""
+      width="24"
+      height="16"
+    />
   }
   <input
     #box
-    [id]="id"
+    matInput
     type="text"
-    role="combobox"
     autocomplete="off"
     spellcheck="false"
-    aria-autocomplete="list"
-    [attr.aria-expanded]="open()"
-    [attr.aria-controls]="id + '-list'"
-    [attr.aria-activedescendant]="activeId()"
-    [attr.aria-describedby]="hint() ? id + '-hint' : null"
+    [matAutocomplete]="list"
     [placeholder]="placeholder()"
     [disabled]="disabled()"
     [value]="text()"
     (focus)="onFocus(box)"
     (input)="onInput(box.value)"
-    (blur)="onBlur()"
-    (keydown)="onKeydown($event)"
   />
   @if (value() && !disabled()) {
     <button
+      matIconButton
+      matSuffix
       type="button"
-      class="clear"
       [attr.aria-label]="'Clear ' + label()"
       title="Clear"
       (click)="clear(box)"
     >
-      <span aria-hidden="true">×</span>
+      <mat-icon>close</mat-icon>
     </button>
   }
-</div>
-@if (hint()) {
-  <p class="hint" [id]="id + '-hint'">{{ hint() }}</p>
-}
-
-<ul class="list" role="listbox" [id]="id + '-list'" [attr.aria-label]="label()" [hidden]="!open()">
-  @for (option of results(); track option.kind + option.code; let i = $index) {
-    <!-- Combobox pattern: focus stays in the input, which handles the keys (aria-activedescendant). -->
-    <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
-    <li
-      role="option"
-      class="option"
-      [id]="id + '-option-' + i"
-      [class.is-active]="i === active()"
-      [attr.aria-selected]="i === active()"
-      (mousedown)="$event.preventDefault()"
-      (click)="choose(option)"
-      (mousemove)="active.set(i)"
-    >
-      <img class="flag" [src]="option.countryCode | flagUrl" alt="" width="24" height="16" />
-      <span class="text">
-        <span class="title">{{ option.title }}</span>
-        <span class="subtitle">{{ option.subtitle }}</span>
-      </span>
-    </li>
-  } @empty {
-    <li class="empty">No matching airports</li>
+  @if (hint()) {
+    <mat-hint>{{ hint() }}</mat-hint>
   }
-</ul>
+</mat-form-field>
+
+<mat-autocomplete
+  #list="matAutocomplete"
+  class="airport-options"
+  [displayWith]="displayTitle"
+  [autoActiveFirstOption]="true"
+  (optionSelected)="choose($event.option.value)"
+  (closed)="close()"
+>
+  @for (option of results(); track option.kind + option.code) {
+    <mat-option [value]="option">
+      <span class="option">
+        <img class="flag" [src]="option.countryCode | flagUrl" alt="" width="24" height="16" />
+        <span class="text">
+          <span class="title">{{ option.title }}</span>
+          <span class="subtitle">{{ option.subtitle }}</span>
+        </span>
+      </span>
+    </mat-option>
+  } @empty {
+    <mat-option disabled>No matching airports</mat-option>
+  }
+</mat-autocomplete>
 <p class="visually-hidden" aria-live="polite">{{ status() }}</p>

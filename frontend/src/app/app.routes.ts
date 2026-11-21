@@ -5,12 +5,12 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./components/routes-page/routes-page').then((m) => m.RoutesPage),
-    title: 'Routes · Cheap Flights Europe',
+    title: 'Routes · Explore with me',
   },
   {
     path: 'search',
     loadComponent: () => import('./components/search-page/search-page').then((m) => m.SearchPage),
-    title: 'Search · Cheap Flights Europe',
+    title: 'Search · Explore with me',
   },
   {
     path: 'search/results',
@@ -18,13 +18,13 @@ export const routes: Routes = [
       import('./components/flight-results-page/flight-results-page').then(
         (m) => m.FlightResultsPage,
       ),
-    title: 'Results · Cheap Flights Europe',
+    title: 'Results · Explore with me',
   },
   {
     path: 'search/trips',
     loadComponent: () =>
       import('./components/trip-results-page/trip-results-page').then((m) => m.TripResultsPage),
-    title: 'Cheapest dates · Cheap Flights Europe',
+    title: 'Cheapest dates · Explore with me',
   },
   { path: 'results', redirectTo: 'search/results' },
   { path: '**', redirectTo: '' },

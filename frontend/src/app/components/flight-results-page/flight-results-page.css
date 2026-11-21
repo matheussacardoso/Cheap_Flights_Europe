@@ -1,3 +1,10 @@
 .btn-back {
   margin-bottom: var(--space-6);
 }
+
+/* Wide tables scroll inside the card on phones instead of the page. */
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}

@@ -6,8 +6,8 @@ The general design system (8pt spacing, tokens, accessibility) is in the root `C
 
 ## 1. Nav bar (`components/nav-bar/`)
 
-- One bar at the top of every page, `--nav-height` tall (56px), on `--color-primary`.
-- Left: the brand ("✈ Cheap Flights Europe"), which links to Routes.
+- One `mat-toolbar` at the top of every page (inside a `<header>`), `--nav-height` tall (64px), in night blue (`--color-primary`).
+- Left: the brand, a gold compass star and "Explore with me" in the display serif, which links to Routes.
 - Right of the brand: `<nav aria-label="Main">` with two links:
 
   | Link   | URL       | Active on                    |
@@ -15,7 +15,7 @@ The general design system (8pt spacing, tokens, accessibility) is in the root `C
   | Routes | `/`       | `/` only (exact match)       |
   | Search | `/search` | `/search`, `/search/results` and `/search/trips` |
 
-- The active link is a solid white tab with primary text, and has `aria-current="page"`. A color change alone is not enough.
+- The links are Material text buttons. The active one is a solid gold tab with night-blue text, and has `aria-current="page"`. A color change alone is not enough.
 - Both links keep the query params (`queryParamsHandling="preserve"`), so the chosen route follows you between pages.
 - New pages get a link here only if they are top-level. Results and detail pages live under their parent's URL, so the parent's link stays active.
 
@@ -23,15 +23,15 @@ The general design system (8pt spacing, tokens, accessibility) is in the root `C
 
 ### Routes (`/`, `components/routes-page/`)
 
-A full-screen layout under the nav bar: a sidebar (`--sidebar-width`, 360px) beside the map, which fills the rest. The page itself never scrolls on desktop; the sidebar scrolls on its own.
+A full-screen layout under the nav bar: a sidebar (`--sidebar-width`, 380px) beside the map, which fills the rest. The page itself never scrolls on desktop; the sidebar scrolls on its own.
 
 - **The sidebar is `position: relative`.** Absolutely positioned children (like the visually hidden live regions of the search boxes) are then placed inside it. Without it, they sit below the screen and the whole page scrolls (it grew to 2,670 px once).
 
 The sidebar is split into sections, 24px apart (`--space-6`), with smaller gaps inside each section. From top to bottom:
 
-1. **Title and From/To boxes** (`components/trip-fields/`), with errors and a "Try again" button below.
-2. **Route card**, only when the trip is complete: "Cologne → Palma de Mallorca", **Search prices →** (primary) and **☆ Save route**.
-3. **Direct flights from X (N)**: every destination as a button with flag, name, country and code. It is sorted by the name shown, and the chosen one has `aria-pressed="true"`. This list is also the keyboard and screen-reader alternative to the map.
+1. **Title** ("Where will your journey lead?", with an italic gold tagline) **and From/To boxes** (`components/trip-fields/`), with errors and a "Try again" button below.
+2. **Route card**, only when the trip is complete: an outlined `mat-card` in gold-tinted sand with "Cologne → Palma de Mallorca" in the display serif, **Search prices** (filled) and **Save route** (outlined, star icon).
+3. **Direct flights from X (N)**: a `mat-action-list`, every destination a list item with flag, name, country and code. It is sorted by the name shown, and the chosen one has `aria-pressed="true"`. This list is also the keyboard and screen-reader alternative to the map.
 4. **Saved routes.**
 
 New sidebar features (airline or country filters, for example) go in as a new section. Don't put them inside the map.
@@ -42,15 +42,18 @@ A centred card (`.container`). From top to bottom:
 
 1. Saved routes.
 2. The From ⇄ To boxes, in a row.
-3. **Trip:** a segmented control, *Round trip on set days* (the default) or *One way*. It is made of native radio buttons.
+3. **Trip:** a `mat-button-toggle-group` bound to the form, *Round trip on set days* (the default) or *One way*.
 4. **Days** (round trip only):
-   - preset toggle buttons, **Thu → Mon**, **Wed → Mon**, **Fri → Tue** and **Fri → Sun**, with `aria-pressed`;
-   - **Leave on** and **Come back on** selects;
+   - a toggle group of presets, **Thu → Mon**, **Wed → Mon**, **Fri → Tue** and **Fri → Sun**; the one matching the chosen days is selected (none when the days match no preset);
+   - **Leave on** and **Come back on** `mat-select`s;
    - a live summary, e.g. "4 nights · 13 departures to compare".
 5. Dates and currency:
    - **Round trip:** **First departure** and **Last departure** are dropdowns, not free date pickers, so only dates that match the chosen days can be picked (see *Round-trip dates* below).
-   - **One way:** native date pickers, **Departure from** and an optional **Departure until**.
-6. The submit button: **Find the cheapest dates** (round trip) or **Search flights** (one way).
+   - **One way:** date fields (`matInput type="date"`), **Departure from** and an optional **Departure until**.
+   - All are outlined `mat-form-field`s; errors show under the field (`mat-error`, or a hint styled as an error for the period, which is checked on the whole form).
+6. The submit button, filled and full width: **Find the cheapest dates** (round trip, compass icon) or **Search flights** (one way).
+
+The page opens with the title "Plan your journey" and an italic gold tagline.
 
 #### Round-trip dates
 
@@ -132,16 +135,16 @@ Rules:
 
 ### From/To boxes (`components/airport-search/`)
 
-An ARIA 1.2 combobox: `role="combobox"` with `aria-expanded`, `aria-controls` and `aria-activedescendant`, plus a `role="listbox"` popup.
+An outlined `mat-form-field` with a Material autocomplete, which provides the ARIA combobox pattern (`role="combobox"`, `aria-expanded`, `aria-activedescendant`, a `role="listbox"` popup in an overlay) and the keys. The first option is active as you type.
 
 | Key or action      | Effect                                                  |
 | ------------------ | ------------------------------------------------------- |
 | Focus              | Selects the text and opens the list                     |
 | Typing             | Filters the list                                        |
-| ↓ / ↑              | Moves through the options (wraps around)                |
+| ↓ / ↑              | Moves through the options                               |
 | Enter              | Chooses the highlighted option                          |
 | Escape             | Closes the list and shows the chosen value again        |
-| ×                  | Clears the box (`aria-label="Clear From"`)              |
+| ✕ (icon button)    | Clears the box (`aria-label="Clear From"`)              |
 
 - **Matching** ignores case and accents, so "malaga" finds Málaga. It checks the name, city, code and country, ranked as: exact code, then names starting with the query, then words starting with it, then anywhere. It shows at most 50 results.
 - **Display:** each option shows a flag, the airport name in bold, and "City · Country · CODE" below. The box shows the chosen name with its flag.
@@ -184,7 +187,8 @@ An ARIA 1.2 combobox: `role="combobox"` with `aria-expanded`, `aria-controls` an
 | To chosen       | The trip's dots are primary.                                             | The chosen line is bold with an arrow; the others fade (`--map-faded-opacity`) |
 | Any airport in a country | Same, and that country is filled `--color-primary-subtle` with a primary border. | Lines to all its airports are bold          |
 
-- **Countries** are background only and can't be clicked. Ryanair countries are white (`--color-map-land`), others grey (`--color-map-land-muted`).
+- **Countries** are background only and can't be clicked. Ryanair countries are sand (`--color-map-land`), others a paler grey (`--color-map-land-muted`), on a calm blue-grey sea. Possible flights are thin gold lines; the chosen one is night blue.
+- **Country names** use the display serif in spaced capitals, like an old map.
 - **Country names** are muted capitals, shown only when the country is big enough on screen.
 - **Airport names** sit beside their dot (right, then left, above, below), wherever they don't overlap another name. Otherwise they are hidden but still shown on hover.
   - The trip's airports are placed first, so they always keep their names.
@@ -206,12 +210,11 @@ Use it for every wait the user can notice, instead of plain "Loading…" text.
 
 - **Inputs:** `title` (what is happening, e.g. "Finding the cheapest dates"), an optional `detail` (what exactly, and how long), and `compact`.
 - **Full version** (searches, the map):
-  - a card with a spinner, the title and the detail;
-  - an indeterminate progress bar. The API gives no real progress, so it never fakes a percentage.
+  - a card with a Material progress spinner, the title and the detail;
+  - an indeterminate Material progress bar, in gold. The API gives no real progress, so it never fakes a percentage.
 - **Compact version** (lists in the sidebar): one muted line with a small spinner, e.g. "Loading airports…" or "Loading direct flights…".
 - It is a `role="status"` polite live region, so screen readers announce it.
-- With `prefers-reduced-motion`, the spinner and the bar pulse slowly instead of moving.
-- Speeds come from `--loading-spin-duration` and `--loading-slide-duration`.
+- Material's spinner and bar follow `prefers-reduced-motion` themselves.
 
 ## 6. URL
 
@@ -226,8 +229,8 @@ On load the URL wins, once airports arrive. After that, every change replaces th
 
 ## 7. Saved routes
 
-- **☆ Save route** appears once the trip is complete (on the route card and on the Search page) and toggles to **★ Saved**.
-- Saved routes are kept in `localStorage` in this browser only; there are no accounts. Clicking a saved route makes it the current trip, and **×** removes it.
+- **Save route** (star outline icon) appears once the trip is complete (on the route card and on the Search page) and toggles to **Saved** (filled star).
+- Saved routes are kept in `localStorage` in this browser only; there are no accounts. Clicking a saved route makes it the current trip, and its ✕ icon button removes it. The current one is tinted gold.
 - The result is announced in a polite live region: "… selected.", "… is no longer served by Ryanair." or "… removed from saved routes."
 - **Always shown,** even with no saved routes: the heading, the hint "Save a route to find it here, or upload a routes file." and **↑ Upload file**.
 
@@ -250,11 +253,11 @@ To keep saved routes, or bring them to another browser or computer.
   - "That file has no routes."
   - Shown in the error color when nothing could be used: "page.html isn't a routes file. Upload a file downloaded from Saved routes.", "big.json is too big to be a routes file." (over 1 MB, not read), or every route skipped.
 - **Versions:** a file with a higher `version` than the app knows is refused as not a routes file. Bump `ROUTES_FILE_VERSION` when the shape of a file route changes.
-- **`.btn-outline`** (shared, in `src/styles.css`) is used for both buttons, like ☆ Save route. When disabled it turns grey with white text, like other disabled buttons.
+- **Download file** and **Upload file** are outlined Material buttons with download/upload icons.
 
 ## 8. Tokens and layout constants
 
-Added for these screens, in `src/styles.css`:
+Added for these screens, in `src/styles.scss` (colors come from the Material theme defined there):
 
 | Token                                  | Use                                                        |
 | -------------------------------------- | ---------------------------------------------------------- |
@@ -262,13 +265,14 @@ Added for these screens, in `src/styles.css`:
 | `--field-min-width`                    | Minimum width of form fields in a grid                     |
 | `--map-height-mobile`, `--list-max-height-mobile` | Phone layout                                    |
 | `--color-map-airport`, `--color-map-route` | Airport dots and possible flights (at least 3:1 on land) |
-| `--color-map-bus`                      | Ring of destinations Flixbus also reaches (4.1:1 on land) |
+| `--color-map-bus`                      | Ring of destinations Flixbus also reaches (4.4:1 on land) |
+| `--color-gold`, `--color-gold-subtle`, `--color-gold-on-primary` | Gold accents: taglines, highlights, the brand star and active tab |
+| `--font-family-display`                | The serif for titles, the brand and country names          |
 | `--map-stroke`, `--map-stroke-dot`, `--map-stroke-bold`, `--map-faded-opacity` | Map strokes, in on-screen pixels |
 | `--radius-round`                       | Circles (swap button, legend dots)                         |
 | `--focus-width`, `--focus-offset`, `--z-dropdown` | Focus ring, and the combobox popup layer        |
 | `--line-height-label`, `--color-on-color-hover` | Label line height, and hover on the nav bar       |
 | `--z-overlay`, `--color-overlay`       | The loading cover over a busy form                         |
-| `--loading-spin-duration`, `--loading-slide-duration` | Loading animation speeds                    |
 
 - **Breakpoint:** one layout breakpoint, `768px`. Media queries can't read custom properties, so it is written literally.
 - **Below 768px:**

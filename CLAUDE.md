@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Finds cheap, direct, low-cost flights in Europe for long-weekend trips. The root `README.md` describes the product vision: multi-airline search, Thu–Mon and Fri–Tue presets, time windows and price caps. `docs/requirements.md` lists the requirements and what is built.
+**Explore with me** (the site's name) finds cheap, direct, low-cost flights in Europe for long-weekend trips. Its look is a desert journey, inspired by the mood of Paulo Coelho's *The Alchemist* (sand, gold, the night sky over the dunes): original wording and visuals only, no quotes or imagery from the book. The root `README.md` describes the product vision: multi-airline search, Thu–Mon and Fri–Tue presets, time windows and price caps. `docs/requirements.md` lists the requirements and what is built.
 
 Today the app covers Ryanair flights, through `ryanair-py`. It has one-way searches, and round trips on set weekdays (e.g. every Thursday to Monday in a period). Round trips are also compared with Flixbus buses between the airports' cities ("plane or bus?", `/bus/*`). Multi-airline search, time windows and price caps are not built yet.
 
@@ -170,8 +170,11 @@ npm run build:map                             # regenerate public/maps/europe.js
 
 ### UI/UX design system (apply to all frontend styling)
 
+- **Angular Material (M3):** use Material components for controls: `matButton` (`filled` for the main action, `outlined`/`tonal` for the others), `matIconButton`, `mat-form-field` + `matInput`/`mat-select`, `mat-autocomplete` (`components/airport-search/`), `mat-button-toggle-group`, chips, `mat-card`, `mat-action-list`, `mat-table`, `mat-toolbar`, progress spinner/bar. The d3 map stays custom. Icons are `<mat-icon>` with Material Symbols ligatures (font set in `app.config.ts`, font loaded in `index.html`); they're `aria-hidden`, so a button's label must be its text or an `aria-label`. Specs drive Material components with their test harnesses (`@angular/material/*/testing`); popups (autocomplete, select) render in an overlay outside the component.
+- **Theme:** `src/styles.scss` defines the Material theme (`mat.theme` + `mat.theme-overrides`): night-blue primary, gold tertiary, sand surfaces; Cormorant Garamond for titles (`brand-family`), Source Sans 3 for text (`plain-family`; font lists are one quoted string, see the comment there). Restyle Material components through their `--mat-*` tokens in component CSS, not by overriding their internal classes.
+- **Voice:** page titles are journey-themed ("Where will your journey lead?", "Plan your journey", "Plane or bus?") with an italic gold `.tagline` under them; keep labels, hints and errors plain and clear.
 - **Spacing:** use an 8pt scale (8, 16, 24, 32, …), with 4px steps allowed only for fine-tuning. Don't introduce arbitrary values without a stated reason.
-- **Tokens:** all spacing, sizing, color, radius and shadow values come from the CSS custom properties in `src/styles.css` (`--space-*`, `--control-height`, `--color-*`, …). Never hardcode raw values in component CSS. Shared styles (`.container`, `.btn`, form controls, tables) also live in `src/styles.css`. Component CSS only holds layout specific to that component.
+- **Tokens:** all spacing, sizing, color, radius and shadow values come from the CSS custom properties in `src/styles.scss` (`--space-*`, `--control-height`, `--color-*`, …); its colors come from the Material system tokens (`--mat-sys-*`). Never hardcode raw values in component CSS. Shared styles (`.container`, `.tagline`, `.form-hint`, Material table defaults) also live there. Component CSS only holds layout specific to that component.
 - **Component sizing:** equivalent components (buttons, inputs, selects) share the same height.
 - **Hierarchy through proximity:** use smaller spacing inside a group and larger spacing between groups.
 - **Consistency:** the same patterns, spacing and sizes apply across all screens.

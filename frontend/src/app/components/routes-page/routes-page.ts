@@ -1,4 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { MatButton } from '@angular/material/button';
+import { MatCard, MatCardContent } from '@angular/material/card';
+import { MatIcon } from '@angular/material/icon';
+import {
+  MatActionList,
+  MatListItem,
+  MatListItemAvatar,
+  MatListItemLine,
+  MatListItemTitle,
+} from '@angular/material/list';
 import { RouterLink } from '@angular/router';
 import { FlagUrlPipe } from '../../pipes/flag-url-pipe';
 import { BusAvailability } from '../../services/bus-availability';
@@ -17,7 +27,23 @@ import { TripMap } from '../trip-map/trip-map';
 @Component({
   selector: 'app-routes-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FlagUrlPipe, LoadingIndicator, RouterLink, SavedRoutesList, TripFields, TripMap],
+  imports: [
+    FlagUrlPipe,
+    LoadingIndicator,
+    MatActionList,
+    MatButton,
+    MatCard,
+    MatCardContent,
+    MatIcon,
+    MatListItem,
+    MatListItemAvatar,
+    MatListItemLine,
+    MatListItemTitle,
+    RouterLink,
+    SavedRoutesList,
+    TripFields,
+    TripMap,
+  ],
   templateUrl: './routes-page.html',
   styleUrl: './routes-page.css',
 })

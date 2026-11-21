@@ -1,12 +1,15 @@
 <div class="routes-page">
   <aside class="sidebar" aria-label="Find a route">
     <section class="section">
-      <h1 class="title">Where can you fly direct?</h1>
+      <h1 class="title">Where will your journey lead?</h1>
+      <p class="tagline">Choose where you leave from, and follow the lines.</p>
       <app-trip-fields />
       @if (trip.error()) {
         <div class="status" role="alert">
           <p class="error">{{ trip.error() }}</p>
-          <button type="button" class="btn btn-secondary" (click)="trip.retry()">Try again</button>
+          <button matButton="tonal" type="button" (click)="trip.retry()">
+            <mat-icon>refresh</mat-icon> Try again
+          </button>
         </div>
       } @else if (trip.loadingAirports()) {
         <app-loading-indicator title="Loading airports…" [compact]="true" />
@@ -14,21 +17,33 @@
     </section>
 
     @if (savedRoutes.current(); as route) {
-      <section class="section route-card" aria-labelledby="route-title">
-        <h2 id="route-title" class="route-title">
-          {{ route.originName }} <span aria-hidden="true">→</span
-          ><span class="visually-hidden"> to </span> {{ route.destinationName }}
-        </h2>
-        <div class="actions">
-          <a class="btn btn-primary" routerLink="/search" [queryParams]="searchParams()">
-            Search prices <span aria-hidden="true">→</span>
-          </a>
-          <button type="button" class="btn btn-outline" (click)="savedRoutes.toggleCurrent()">
-            <span aria-hidden="true">{{ savedRoutes.isCurrentSaved() ? '★' : '☆' }}</span>
-            {{ savedRoutes.isCurrentSaved() ? 'Saved' : 'Save route' }}
-          </button>
-        </div>
-      </section>
+      <mat-card
+        appearance="outlined"
+        class="section route-card"
+        role="region"
+        aria-labelledby="route-title"
+      >
+        <mat-card-content>
+          <h2 id="route-title" class="route-title">
+            {{ route.originName }} <span aria-hidden="true">→</span
+            ><span class="visually-hidden"> to </span> {{ route.destinationName }}
+          </h2>
+          <div class="actions">
+            <a
+              matButton="filled"
+              class="search-link"
+              routerLink="/search"
+              [queryParams]="searchParams()"
+            >
+              <mat-icon>travel_explore</mat-icon> Search prices
+            </a>
+            <button matButton="outlined" type="button" (click)="savedRoutes.toggleCurrent()">
+              <mat-icon>{{ savedRoutes.isCurrentSaved() ? 'star' : 'star_outline' }}</mat-icon>
+              {{ savedRoutes.isCurrentSaved() ? 'Saved' : 'Save route' }}
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
     }
 
     @if (trip.originAirport(); as origin) {
@@ -42,36 +57,36 @@
         @if (trip.loadingRoutes()) {
           <app-loading-indicator title="Loading direct flights…" [compact]="true" />
         } @else {
-          <ul class="destinations">
+          <mat-action-list class="destinations" aria-labelledby="destinations-title">
             @for (item of destinations(); track item.airport.code) {
               @let airport = item.airport;
-              <li>
-                <button
-                  type="button"
-                  class="destination"
-                  [attr.aria-pressed]="trip.destination() === airport.code"
-                  (click)="trip.selectDestination(airport.code)"
-                >
-                  <img
-                    class="flag"
-                    [src]="airport.countryCode | flagUrl"
-                    alt=""
-                    width="24"
-                    height="16"
-                  />
-                  <span class="name">{{ airport.name }}</span>
-                  <span class="meta"
-                    >{{ airport.countryName }} · {{ airport.code }}
-                    @if (item.busTag) {
-                      <span class="bus-tag"
-                        ><span aria-hidden="true">🚌</span> {{ item.busTag }}</span
-                      >
-                    }
-                  </span>
-                </button>
-              </li>
+              <button
+                mat-list-item
+                type="button"
+                class="destination"
+                [attr.aria-pressed]="trip.destination() === airport.code"
+                (click)="trip.selectDestination(airport.code)"
+              >
+                <img
+                  matListItemAvatar
+                  class="flag"
+                  [src]="airport.countryCode | flagUrl"
+                  alt=""
+                  width="24"
+                  height="16"
+                />
+                <span matListItemTitle class="name">{{ airport.name }}</span>
+                <span matListItemLine class="meta"
+                  >{{ airport.countryName }} · {{ airport.code }}
+                  @if (item.busTag) {
+                    <span class="bus-tag"
+                      ><span aria-hidden="true">🚌</span> {{ item.busTag }}</span
+                    >
+                  }
+                </span>
+              </button>
             }
-          </ul>
+          </mat-action-list>
         }
       </section>
     }

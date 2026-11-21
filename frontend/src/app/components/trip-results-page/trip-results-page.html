@@ -1,10 +1,24 @@
 <main class="container">
   <h1>{{ compared() ? 'Plane or bus?' : 'Cheapest dates' }}</h1>
+  @if (rows().length) {
+    <p class="tagline">
+      {{
+        compared()
+          ? 'Two roads to the same place; here is what each one asks of you.'
+          : 'Every week of your journey, cheapest first.'
+      }}
+    </p>
+  }
 
-  <a routerLink="/search" class="btn btn-secondary btn-back">← New search</a>
+  <a matButton="outlined" routerLink="/search" class="btn-back">
+    <mat-icon>arrow_back</mat-icon> New search
+  </a>
 
   @if (rows().length === 0) {
-    <p class="muted">No round trips found for these days, or your search session expired.</p>
+    <p class="muted">
+      No round trips found for these days, or your search session expired. Every road has other
+      days: try another period.
+    </p>
   } @else {
     <p class="form-hint">
       {{ rows().length }} {{ rows().length === 1 ? 'week' : 'weeks' }}, cheapest first. Prices are
@@ -15,62 +29,79 @@
       }
     </p>
     @if (summary(); as text) {
-      <p class="summary">{{ text }}</p>
+      <p class="summary">
+        <mat-icon aria-hidden="true">explore</mat-icon> <span class="summary-text">{{ text }}</span>
+      </p>
     }
     @if (busNote(); as note) {
-      <p class="bus-note"><span aria-hidden="true">🚌</span> {{ note }}</p>
+      <p class="bus-note"><mat-icon aria-hidden="true">directions_bus</mat-icon> {{ note }}</p>
     }
 
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">Dates</th>
-          <th scope="col">To</th>
-          <th scope="col"><span aria-hidden="true">✈</span> Ryanair</th>
-          @if (compared()) {
-            <th scope="col"><span aria-hidden="true">🚌</span> Flixbus</th>
-            <th scope="col">Better</th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @for (row of rows(); track row.key) {
-          <tr [class.is-cheapest]="row.isCheapest">
-            <td>
-              <strong>{{ row.outDate | date: 'EEE d MMM' }}</strong>
-              → {{ row.backDate | date: 'EEE d MMM' }}
-            </td>
-            <td>{{ row.destinationName }} {{ row.destinationCode }}</td>
-            <td [class.is-winner]="compared() && row.verdict.winner === 'flight'">
-              @if (row.flight; as side) {
-                <app-round-trip-cell [side]="side" />
-              } @else {
-                <span class="muted">No flight</span>
-              }
-            </td>
-            @if (compared()) {
-              <td [class.is-winner]="row.verdict.winner === 'bus'">
-                @if (row.bus; as side) {
-                  <app-round-trip-cell [side]="side" />
-                } @else {
-                  <span class="muted">No bus</span>
-                }
-              </td>
-              <td>
-                <strong>
-                  {{ row.verdict.text }}
-                  @if (row.verdict.amount !== null) {
-                    {{ row.verdict.amount | currency: row.verdict.currency }}
-                  }
-                </strong>
-                @if (row.verdict.detail) {
-                  <span class="detail wrap">{{ row.verdict.detail }}</span>
-                }
-              </td>
+    <div class="table-scroll">
+      <table mat-table [dataSource]="rows()" [trackBy]="trackRow">
+        <ng-container matColumnDef="dates">
+          <th mat-header-cell *matHeaderCellDef>Dates</th>
+          <td mat-cell *matCellDef="let row">
+            <strong>{{ row.outDate | date: 'EEE d MMM' }}</strong>
+            → {{ row.backDate | date: 'EEE d MMM' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="to">
+          <th mat-header-cell *matHeaderCellDef>To</th>
+          <td mat-cell *matCellDef="let row">
+            {{ row.destinationName }} {{ row.destinationCode }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="flight">
+          <th mat-header-cell *matHeaderCellDef><span aria-hidden="true">✈</span> Ryanair</th>
+          <td
+            mat-cell
+            *matCellDef="let row"
+            [class.is-winner]="compared() && row.verdict.winner === 'flight'"
+          >
+            @if (row.flight) {
+              <app-round-trip-cell [side]="row.flight" />
+            } @else {
+              <span class="muted">No flight</span>
             }
-          </tr>
-        }
-      </tbody>
-    </table>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="bus">
+          <th mat-header-cell *matHeaderCellDef><span aria-hidden="true">🚌</span> Flixbus</th>
+          <td mat-cell *matCellDef="let row" [class.is-winner]="row.verdict.winner === 'bus'">
+            @if (row.bus) {
+              <app-round-trip-cell [side]="row.bus" />
+            } @else {
+              <span class="muted">No bus</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="better">
+          <th mat-header-cell *matHeaderCellDef>Better</th>
+          <td mat-cell *matCellDef="let row">
+            <strong>
+              {{ row.verdict.text }}
+              @if (row.verdict.amount !== null) {
+                {{ row.verdict.amount | currency: row.verdict.currency }}
+              }
+            </strong>
+            @if (row.verdict.detail) {
+              <span class="detail">{{ row.verdict.detail }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns()"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: columns()"
+          [class.is-cheapest]="row.isCheapest"
+        ></tr>
+      </table>
+    </div>
   }
 </main>

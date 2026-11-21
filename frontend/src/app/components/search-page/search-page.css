@@ -7,12 +7,18 @@ form {
 
 /* "Also compares Flixbus buses: …", right under the route. */
 .bus-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   margin: 0;
+}
+
+.hint-icon {
+  color: var(--color-gold);
 }
 
 .save-route {
   align-self: flex-start;
-  gap: var(--space-2);
 }
 
 .trip-field {
@@ -40,6 +46,7 @@ form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--field-min-width), 1fr));
   gap: var(--space-4);
+  align-items: start;
 }
 
 /* Round-trip dates show whole trips: two wider columns. */
@@ -47,15 +54,18 @@ form {
   grid-template-columns: repeat(auto-fit, minmax(var(--field-min-width-wide), 1fr));
 }
 
-.form-grid .btn {
+/* The search button spans the row, as the one main action. */
+.submit {
   grid-column: 1 / -1;
+  height: 48px;
+  font-size: var(--font-size-md);
 }
 
 /* Groups of related choices (trip type, days): a title, then the choices. */
 .group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   border: none;
@@ -68,75 +78,14 @@ form {
   font-weight: bold;
 }
 
-/* Trip type: two radio buttons that look like one segmented control. */
-.segmented {
-  display: flex;
-  flex-wrap: wrap;
-  align-self: flex-start;
-  overflow: hidden;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-}
-
-.segment {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: var(--control-height);
-  padding: 0 var(--space-4);
-  font-size: var(--font-size-md);
-  color: var(--color-primary);
-  cursor: pointer;
-}
-
-.segment + .segment {
-  border-left: 1px solid var(--color-primary);
-}
-
-/* The native radio stays in the page for keyboard and screen readers, but invisible. */
-.segment input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.segment:has(input:checked) {
-  background-color: var(--color-primary);
-  color: var(--color-on-color);
-}
-
-.segment:has(input:focus-visible) {
-  outline: var(--focus-width) solid var(--color-focus);
-  outline-offset: calc(-1 * var(--focus-offset) - var(--focus-width));
-}
-
-/* Day presets: toggle buttons. */
+/* Trip type and day presets: Material toggle groups; the chosen one in night blue. */
+.trip-type,
 .presets {
-  display: flex;
+  --mat-button-toggle-selected-state-background-color: var(--color-primary);
+  --mat-button-toggle-selected-state-text-color: var(--color-on-color);
+
+  align-self: flex-start;
   flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.preset {
-  height: var(--control-height);
-  padding: 0 var(--space-4);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  cursor: pointer;
-}
-
-.preset:hover {
-  border-color: var(--color-primary);
-}
-
-.preset[aria-pressed='true'] {
-  border-color: var(--color-primary);
-  background-color: var(--color-primary-subtle);
-  color: var(--color-primary);
-  font-weight: bold;
 }
 
 .summary {

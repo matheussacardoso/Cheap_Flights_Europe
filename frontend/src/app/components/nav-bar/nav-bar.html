@@ -1,31 +1,37 @@
-<header class="nav-bar">
-  <a class="brand" routerLink="/">
-    <span aria-hidden="true">✈</span>
-    Cheap Flights Europe
-  </a>
-  <nav aria-label="Main">
-    <ul class="links">
-      <li>
-        <a
-          routerLink="/"
-          routerLinkActive="is-active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          ariaCurrentWhenActive="page"
-          queryParamsHandling="preserve"
-        >
-          Routes
-        </a>
-      </li>
-      <li>
-        <a
-          routerLink="/search"
-          routerLinkActive="is-active"
-          ariaCurrentWhenActive="page"
-          queryParamsHandling="preserve"
-        >
-          Search
-        </a>
-      </li>
-    </ul>
-  </nav>
+<header>
+  <mat-toolbar class="nav-bar">
+    <a class="brand" routerLink="/">
+      <svg class="star" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <path d="M32 6 L37 27 L58 32 L37 37 L32 58 L27 37 L6 32 L27 27 Z" />
+      </svg>
+      <span class="brand-name">Explore with me</span>
+    </a>
+    <nav aria-label="Main">
+      <ul class="links">
+        <li>
+          <a
+            matButton
+            routerLink="/"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            ariaCurrentWhenActive="page"
+            queryParamsHandling="preserve"
+          >
+            Routes
+          </a>
+        </li>
+        <li>
+          <a
+            matButton
+            routerLink="/search"
+            routerLinkActive="is-active"
+            ariaCurrentWhenActive="page"
+            queryParamsHandling="preserve"
+          >
+            Search
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </mat-toolbar>
 </header>

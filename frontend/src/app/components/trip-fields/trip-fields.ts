@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { MatButton, MatIconButton } from '@angular/material/button';
+import { MatChip, MatChipAvatar, MatChipRemove, MatChipSet } from '@angular/material/chips';
+import { MatIcon } from '@angular/material/icon';
 import {
   AlternativeOrigin,
   MAX_ORIGINS,
@@ -24,7 +27,18 @@ const SUGGESTIONS = 3;
 @Component({
   selector: 'app-trip-fields',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AirportSearch, FlagUrlPipe, LoadingIndicator],
+  imports: [
+    AirportSearch,
+    FlagUrlPipe,
+    LoadingIndicator,
+    MatButton,
+    MatChip,
+    MatChipAvatar,
+    MatChipRemove,
+    MatChipSet,
+    MatIcon,
+    MatIconButton,
+  ],
   templateUrl: './trip-fields.html',
   styleUrl: './trip-fields.css',
   host: { '[class.is-row]': "layout() === 'row'" },

@@ -117,7 +117,7 @@ describe('TripResultsPage', () => {
       );
 
       expect(element.querySelector('h1')?.textContent).toBe('Plane or bus?');
-      expect(element.querySelector('.summary')?.textContent).toBe(
+      expect(element.querySelector('.summary-text')?.textContent).toBe(
         'Ryanair is cheaper in 1 week, Flixbus in 1 week.',
       );
       // Cheapest first: the 3 Dec bus (€50), then 10 Dec (plane €59.98), then the 17 Dec bus.

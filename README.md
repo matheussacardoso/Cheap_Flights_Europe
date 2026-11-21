@@ -1,4 +1,6 @@
-# ✈️ Cheap_Flights_Europe
+# ✦ Explore with me
+
+*Cheap flights in Europe, and the plane-or-bus question answered, with a desert-journey look.*
 
 Got a bunch of bridge days coming up and an itch to explore Europe without spending your entire paycheck or your sanity? 
 

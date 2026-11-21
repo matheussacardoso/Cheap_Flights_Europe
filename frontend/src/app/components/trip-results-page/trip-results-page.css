@@ -3,23 +3,30 @@
 }
 
 /* Wide tables scroll inside the card on phones instead of the page. */
-:host table {
-  display: block;
+.table-scroll {
   overflow-x: auto;
-}
-
-td {
-  vertical-align: top;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
 }
 
 /* "Ryanair is cheaper in 5 weeks, Flixbus in 3." */
-.summary {
+.summary,
+.bus-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   margin: 0 0 var(--space-4);
+}
+
+.summary {
   font-weight: bold;
 }
 
+.summary mat-icon {
+  color: var(--color-gold);
+}
+
 .bus-note {
-  margin: 0 0 var(--space-4);
   color: var(--color-text-muted);
 }
 
@@ -30,8 +37,9 @@ td {
   color: var(--color-text-muted);
 }
 
+/* The week with the cheapest trip of the search: warm sand, like a found oasis. */
 .is-cheapest td {
-  background-color: var(--color-primary-subtle);
+  background-color: var(--color-gold-subtle);
 }
 
 /* The cheaper of plane and bus in a week: a bar on its left, not color alone ("Better" says it). */

@@ -1,5 +1,6 @@
 <main class="container">
-  <h1>Search flight prices</h1>
+  <h1>Plan your journey</h1>
+  <p class="tagline">Pick your days; we'll read the fares and find the best way to go.</p>
 
   <app-saved-routes-list class="saved" />
 
@@ -23,14 +24,14 @@
         @if (trip.error()) {
           <div class="status" role="alert">
             <p class="error">{{ trip.error() }}</p>
-            <button type="button" class="btn btn-secondary" (click)="trip.retry()">
-              Try again
+            <button matButton="tonal" type="button" (click)="trip.retry()">
+              <mat-icon>refresh</mat-icon> Try again
             </button>
           </div>
         }
         @if (busHint(); as hint) {
           <p class="form-hint bus-hint" aria-live="polite">
-            <span aria-hidden="true">🚌</span> {{ hint }}
+            <mat-icon class="hint-icon" aria-hidden="true">directions_bus</mat-icon> {{ hint }}
           </p>
         }
         @if (showTripError()) {
@@ -38,62 +39,64 @@
         }
         @if (savedRoutes.current(); as route) {
           <button
+            matButton="tonal"
             type="button"
-            class="btn btn-secondary save-route"
+            class="save-route"
             (click)="savedRoutes.toggleCurrent()"
           >
-            <span aria-hidden="true">{{ savedRoutes.isCurrentSaved() ? '★' : '☆' }}</span>
-            {{ savedRoutes.isCurrentSaved() ? 'Saved route' : 'Save route' }}
+            <mat-icon>{{ savedRoutes.isCurrentSaved() ? 'star' : 'star_outline' }}</mat-icon>
+            <span class="label">{{
+              savedRoutes.isCurrentSaved() ? 'Saved route' : 'Save route'
+            }}</span>
           </button>
         }
       </fieldset>
 
       <fieldset class="group">
         <legend class="group-title">Trip</legend>
-        <div class="segmented">
-          <label class="segment">
-            <input type="radio" formControlName="trip_type" value="round-trip" />
-            <span>Round trip on set days</span>
-          </label>
-          <label class="segment">
-            <input type="radio" formControlName="trip_type" value="one-way" />
-            <span>One way</span>
-          </label>
-        </div>
+        <mat-button-toggle-group
+          formControlName="trip_type"
+          class="trip-type"
+          aria-label="Trip"
+          [hideSingleSelectionIndicator]="true"
+        >
+          <mat-button-toggle value="round-trip">Round trip on set days</mat-button-toggle>
+          <mat-button-toggle value="one-way">One way</mat-button-toggle>
+        </mat-button-toggle-group>
       </fieldset>
 
       @if (isRoundTrip()) {
         <fieldset class="group" aria-describedby="period-summary">
           <legend class="group-title">Days</legend>
-          <div class="presets" role="group" aria-label="Common trips">
+          <mat-button-toggle-group
+            class="presets"
+            aria-label="Common trips"
+            [value]="pressedPreset()"
+            (change)="choosePresetKey($event.value)"
+          >
             @for (option of presets(); track option.key) {
-              <button
-                type="button"
-                class="preset"
-                [attr.aria-pressed]="option.pressed"
-                (click)="choosePreset(option.preset)"
-              >
-                {{ option.label }}
-              </button>
+              <mat-button-toggle class="preset" [value]="option.key">{{
+                option.label
+              }}</mat-button-toggle>
             }
-          </div>
+          </mat-button-toggle-group>
           <div class="form-grid">
-            <div class="form-group">
-              <label for="depart_day">Leave on</label>
-              <select id="depart_day" formControlName="depart_day">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Leave on</mat-label>
+              <mat-select id="depart_day" formControlName="depart_day">
                 @for (day of weekdayOptions; track day.value) {
-                  <option [value]="day.value">{{ day.label }}</option>
+                  <mat-option [value]="day.value">{{ day.label }}</mat-option>
                 }
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="return_day">Come back on</label>
-              <select id="return_day" formControlName="return_day">
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Come back on</mat-label>
+              <mat-select id="return_day" formControlName="return_day">
                 @for (day of weekdayOptions; track day.value) {
-                  <option [value]="day.value">{{ day.label }}</option>
+                  <mat-option [value]="day.value">{{ day.label }}</mat-option>
                 }
-              </select>
-            </div>
+              </mat-select>
+            </mat-form-field>
           </div>
           <p id="period-summary" class="form-hint summary" aria-live="polite">
             {{ periodSummary() }}
@@ -104,74 +107,64 @@
       <div class="form-grid" [class.is-wide]="isRoundTrip()">
         @if (isRoundTrip()) {
           <!-- Only trips on the chosen days can be picked: each option is one whole trip. -->
-          <div class="form-group">
-            <label for="date_from">First departure *</label>
-            <select id="date_from" formControlName="date_from">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>First departure</mat-label>
+            <mat-select id="date_from" formControlName="date_from" required>
               @for (option of firstDepartures(); track option.date) {
-                <option [value]="option.date">
+                <mat-option [value]="option.date">
                   {{ option.date | date: 'EEE d MMM' }} →
                   {{ option.returnDate | date: 'EEE d MMM y' }}
-                </option>
+                </mat-option>
               }
-            </select>
-          </div>
+            </mat-select>
+          </mat-form-field>
 
-          <div class="form-group">
-            <label for="date_to">Last departure *</label>
-            <select
-              id="date_to"
-              formControlName="date_to"
-              [attr.aria-invalid]="!!dateToError()"
-              [attr.aria-describedby]="dateToError() ? 'date_to-error' : null"
-            >
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Last departure</mat-label>
+            <mat-select id="date_to" formControlName="date_to" required>
               @for (option of lastDepartures(); track option.date) {
-                <option [value]="option.date">
+                <mat-option [value]="option.date">
                   {{ option.date | date: 'EEE d MMM' }} →
                   {{ option.returnDate | date: 'EEE d MMM y' }}
-                </option>
+                </mat-option>
               }
-            </select>
+            </mat-select>
             @if (dateToError(); as error) {
-              <p id="date_to-error" class="field-error">{{ error }}</p>
+              <mat-hint id="date_to-error" class="field-error">{{ error }}</mat-hint>
             }
-          </div>
+          </mat-form-field>
         } @else {
-          <div class="form-group">
-            <label for="date_from">Departure from *</label>
-            <input
-              id="date_from"
-              type="date"
-              formControlName="date_from"
-              required
-              [attr.aria-invalid]="!!dateFromError()"
-              [attr.aria-describedby]="dateFromError() ? 'date_from-error' : null"
-            />
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Departure from</mat-label>
+            <input matInput id="date_from" type="date" formControlName="date_from" required />
             @if (dateFromError(); as error) {
-              <p id="date_from-error" class="field-error">{{ error }}</p>
+              <mat-error id="date_from-error">{{ error }}</mat-error>
             }
-          </div>
+          </mat-form-field>
 
-          <div class="form-group">
-            <label for="date_to">Departure until</label>
-            <input id="date_to" type="date" formControlName="date_to" />
-          </div>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Departure until</mat-label>
+            <input matInput id="date_to" type="date" formControlName="date_to" />
+          </mat-form-field>
         }
 
-        <div class="form-group">
-          <label for="currency">Currency</label>
-          <select id="currency" formControlName="currency">
-            <option value="EUR">EUR (€)</option>
-            <option value="GBP">GBP (£)</option>
-            <option value="USD">USD ($)</option>
-          </select>
-        </div>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Currency</mat-label>
+          <mat-select id="currency" formControlName="currency">
+            <mat-option value="EUR">EUR (€)</mat-option>
+            <mat-option value="GBP">GBP (£)</mat-option>
+            <mat-option value="USD">USD ($)</mat-option>
+          </mat-select>
+        </mat-form-field>
 
         <button
+          matButton="filled"
           type="submit"
-          class="btn btn-primary"
+          class="submit"
           [disabled]="loading()"
           [attr.aria-busy]="loading()"
         >
+          <mat-icon>{{ isRoundTrip() ? 'explore' : 'flight_takeoff' }}</mat-icon>
           {{
             loading() ? 'Searching…' : isRoundTrip() ? 'Find the cheapest dates' : 'Search flights'
           }}

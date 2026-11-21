@@ -1,4 +1,8 @@
+import { HarnessLoader, TestKey } from '@angular/cdk/testing';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatAutocompleteHarness } from '@angular/material/autocomplete/testing';
+import { MatButtonHarness } from '@angular/material/button/testing';
 import { Airport } from '../../services/network-http-client';
 import { airport } from '../../testing/network-fixtures';
 import { AirportSearch, SearchOption, airportOption, countryOption } from './airport-search';
@@ -14,7 +18,8 @@ const OPTIONS: SearchOption[] = [
 
 describe('AirportSearch', () => {
   let fixture: ComponentFixture<AirportSearch>;
-  let input: HTMLInputElement;
+  let loader: HarnessLoader;
+  let box: MatAutocompleteHarness;
   let chosen: SearchOption[];
   let cleared: number;
 
@@ -28,82 +33,67 @@ describe('AirportSearch', () => {
     fixture.componentInstance.chosen.subscribe((option) => chosen.push(option));
     fixture.componentInstance.cleared.subscribe(() => cleared++);
     await fixture.whenStable();
-    input = fixture.nativeElement.querySelector('input');
+    loader = TestbedHarnessEnvironment.loader(fixture);
+    box = await loader.getHarness(MatAutocompleteHarness);
   });
 
-  async function type(text: string): Promise<void> {
-    input.dispatchEvent(new Event('focus'));
-    input.value = text;
-    input.dispatchEvent(new Event('input'));
-    await fixture.whenStable();
-  }
-
-  async function press(key: string): Promise<void> {
-    input.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
-    await fixture.whenStable();
-  }
-
-  function titles(): string[] {
-    return [...fixture.nativeElement.querySelectorAll('[role="option"] .title')].map(
-      (el: Element) => el.textContent?.trim() ?? '',
+  /** The bold names of the listed options (the popup lives in an overlay, outside the fixture). */
+  async function titles(): Promise<string[]> {
+    await box.getOptions(); // waits for the list to render
+    return [...document.querySelectorAll('mat-option')].map(
+      (option) => (option.querySelector('.title') ?? option).textContent?.trim() ?? '',
     );
   }
 
-  it('is labelled and starts closed', () => {
-    expect(fixture.nativeElement.querySelector('label').textContent).toBe('To');
-    expect(input.getAttribute('role')).toBe('combobox');
-    expect(input.getAttribute('aria-expanded')).toBe('false');
+  it('is labelled and starts closed', async () => {
+    expect(fixture.nativeElement.querySelector('mat-label').textContent).toBe('To');
+    expect(await box.isOpen()).toBe(false);
   });
 
   it('matches without accents and puts names that start with the query first', async () => {
-    await type('ma');
-    expect(input.getAttribute('aria-expanded')).toBe('true');
-    expect(titles()).toEqual(['Madrid', 'Málaga']);
+    await box.enterText('ma');
+    expect(await box.isOpen()).toBe(true);
+    expect(await titles()).toEqual(['Madrid', 'Málaga']);
 
-    await type('malaga');
-    expect(titles()).toEqual(['Málaga']);
+    await box.clear();
+    await box.enterText('malaga');
+    expect(await titles()).toEqual(['Málaga']);
   });
 
   it('matches airport codes and countries', async () => {
-    await type('opo');
-    expect(titles()).toEqual(['Porto']);
+    await box.enterText('opo');
+    expect(await titles()).toEqual(['Porto']);
 
-    await type('spain');
-    expect(titles()[0]).toBe('Any airport in Spain');
+    await box.clear();
+    await box.enterText('spain');
+    expect((await titles())[0]).toBe('Any airport in Spain');
   });
 
-  it('chooses with the arrow keys and Enter', async () => {
-    await type('ma');
-    await press('ArrowDown');
-    const active = input.getAttribute('aria-activedescendant');
-    expect(fixture.nativeElement.querySelector(`#${active} .title`).textContent).toBe('Málaga');
-
-    await press('Enter');
+  it('chooses an option', async () => {
+    await box.enterText('ma');
+    await box.selectOption({ text: /Málaga/ });
     expect(chosen.map((option) => option.code)).toEqual(['AGP']);
-    expect(input.getAttribute('aria-expanded')).toBe('false');
+    expect(await box.isOpen()).toBe(false);
   });
 
-  it('chooses with a click', async () => {
-    await type('por');
-    fixture.nativeElement.querySelector('[role="option"]').click();
-    expect(chosen.map((option) => option.code)).toEqual(['OPO']);
-  });
-
-  it('closes with Escape and shows the chosen value again', async () => {
+  it('says when nothing matches, and shows the chosen value again on Escape', async () => {
     fixture.componentRef.setInput('value', airportOption(PORTO));
-    await type('xyz');
-    expect(fixture.nativeElement.textContent).toContain('No matching airports');
+    await box.enterText('xyz');
+    expect(await titles()).toEqual(['No matching airports']);
 
-    await press('Escape');
-    expect(input.getAttribute('aria-expanded')).toBe('false');
-    expect(input.value).toBe('Porto');
+    await (await box.host()).sendKeys(TestKey.ESCAPE);
+    expect(await box.isOpen()).toBe(false);
+    expect(await box.getValue()).toBe('Porto');
     expect(chosen).toEqual([]);
   });
 
   it('clears the value', async () => {
     fixture.componentRef.setInput('value', airportOption(PORTO));
     await fixture.whenStable();
-    fixture.nativeElement.querySelector('[aria-label="Clear To"]').click();
+    const clear = await loader.getHarness(
+      MatButtonHarness.with({ selector: '[aria-label="Clear To"]' }),
+    );
+    await clear.click();
     expect(cleared).toBe(1);
   });
 });
