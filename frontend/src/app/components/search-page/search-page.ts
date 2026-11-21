@@ -15,9 +15,12 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, map, merge } from 'rxjs';
-import { FlightHttpClient } from '../../services/flight-http-client';
+import { Observable, catchError, forkJoin, map, merge, of } from 'rxjs';
+import { BusAvailability } from '../../services/bus-availability';
+import { BusHttpClient, BusTripResponse } from '../../services/bus-http-client';
+import { FlightHttpClient, TripSearchParams } from '../../services/flight-http-client';
 import { SavedRoutes } from '../../services/saved-routes';
 import { SearchResults } from '../../services/search-results';
 import {
@@ -91,6 +94,8 @@ function periodValidator(group: AbstractControl): ValidationErrors | null {
 export class SearchPage {
   private readonly fb = inject(FormBuilder);
   private readonly flightHttpClient = inject(FlightHttpClient);
+  private readonly busHttpClient = inject(BusHttpClient);
+  protected readonly bus = inject(BusAvailability);
   private readonly searchResults = inject(SearchResults);
   private readonly router = inject(Router);
   private readonly viewportScroller = inject(ViewportScroller);
@@ -196,6 +201,22 @@ export class SearchPage {
     return this.searchForm.controls.date_to.touched ? this.periodError() : '';
   });
 
+  /**
+   * Under the route, for round trips: "Also compares Flixbus: Cologne → Paris", or why it can't.
+   * Bus cities are named, since they can differ from the airport (Beauvais → Paris).
+   */
+  protected readonly busHint = computed(() => {
+    if (!this.isRoundTrip() || !this.trip.isComplete()) {
+      return '';
+    }
+    const { origins, destination } = this.bus.busTrip();
+    if (this.bus.canCompare() && destination) {
+      const from = origins.map((origin) => origin.cityName).join(', ');
+      return `Also compares Flixbus buses: ${from} → ${destination.cityName}.`;
+    }
+    return this.bus.compareNote();
+  });
+
   /** What the loading indicator says while a search runs. */
   protected readonly loadingText = computed(() => {
     const { depart_day, return_day, date_from, date_to } = this.formValue();
@@ -209,14 +230,16 @@ export class SearchPage {
     }
     const count = countWeekdays(date_from, date_to, depart_day);
     const days = `${weekdayName(depart_day)} → ${weekdayName(return_day)}`;
+    const by = this.bus.canCompare() ? ', by plane and by bus' : '';
     return {
       title: 'Finding the cheapest dates',
-      detail: `Comparing ${count} ${days} ${count === 1 ? 'trip' : 'trips'} from ${from} to ${to}. This takes a few seconds.`,
+      detail: `Comparing ${count} ${days} ${count === 1 ? 'trip' : 'trips'} from ${from} to ${to}${by}. This takes a few seconds.`,
     };
   });
 
   constructor() {
     this.trip.loadAirports();
+    this.bus.load();
     syncTripWithUrl();
     // Round trips only offer dates on the chosen weekdays: realign whenever the days change.
     const controls = this.searchForm.controls;
@@ -262,17 +285,25 @@ export class SearchPage {
       currency: value.currency || undefined,
     };
     const isRoundTrip = value.trip_type === 'round-trip';
-    // Each search stores its own kind of results, for the results page to read.
+    const period = {
+      date_from: value.date_from,
+      date_to: value.date_to,
+      depart_day: value.depart_day,
+      return_day: value.return_day,
+      currency: route.currency,
+    };
+    // Each search stores its own kind of results, for the results page to read. Round trips
+    // also search Flixbus between the airports' cities, at the same time, to compare.
     const search$: Observable<void> = isRoundTrip
-      ? this.flightHttpClient
-          .searchTrips({
-            ...route,
-            date_from: value.date_from,
-            date_to: value.date_to,
-            depart_day: value.depart_day,
-            return_day: value.return_day,
-          })
-          .pipe(map((trips) => this.searchResults.setTrips(trips)))
+      ? forkJoin([
+          this.flightHttpClient.searchTrips({ ...route, ...period }),
+          this.searchBuses(period),
+        ]).pipe(
+          map(([trips, bus]) => {
+            this.searchResults.setTrips(trips);
+            this.searchResults.setBusTrips(bus.trips, bus.note);
+          }),
+        )
       : this.flightHttpClient
           .searchFlights({
             ...route,
@@ -294,6 +325,38 @@ export class SearchPage {
         this.loading.set(false);
       },
     });
+  }
+
+  /**
+   * The same round trip by Flixbus, between the airports' cities. Never fails the search: when
+   * buses can't be compared or their search fails, the note says why and flights still show.
+   */
+  private searchBuses(
+    period: Omit<TripSearchParams, 'origin'>,
+  ): Observable<{ trips: BusTripResponse[]; note: string }> {
+    const { origins, destination } = this.bus.busTrip();
+    if (!this.bus.canCompare() || !destination) {
+      return of({ trips: [], note: this.bus.compareNote() });
+    }
+    return this.busHttpClient
+      .searchTrips({
+        ...period,
+        origin: origins.map((origin) => origin.city),
+        destination: destination.city,
+      })
+      .pipe(
+        map((trips) => ({
+          trips,
+          note: trips.length ? '' : 'Flixbus has no trips on these days.',
+        })),
+        catchError((error: unknown) => {
+          const detail =
+            error instanceof HttpErrorResponse && typeof error.error?.detail === 'string'
+              ? error.error.detail
+              : 'the search failed';
+          return of({ trips: [], note: `Flixbus couldn't be compared: ${detail}` });
+        }),
+      );
   }
 
   /** Pairs each departure with its return, e.g. Thursday 3 Dec → Monday 7 Dec. */

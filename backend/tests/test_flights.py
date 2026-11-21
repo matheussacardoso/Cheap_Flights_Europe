@@ -3,7 +3,10 @@ from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
+from ryanair import Ryanair
 from ryanair.types import Flight
+
+from app.services.flight_service import _with_arrival_times
 
 URL = "/flights/cheapest"
 
@@ -43,10 +46,29 @@ def test_get_cheapest_flights_success(client: TestClient, ryanair_mock: MagicMoc
             "origin": "CGN",
             "destination": "STN",
             "departureTime": "2026-10-30T10:00:00",
+            "arrivalTime": None,
             "price": 19.99,
             "currency": "EUR",
         }
     ]
+
+
+def test_flights_keep_the_arrival_time_ryanair_sends() -> None:
+    """ryanair-py drops `arrivalDate`; the service's parser keeps it."""
+    raw = {
+        "departureAirport": {"iataCode": "CGN", "name": "Cologne", "countryName": "Germany"},
+        "arrivalAirport": {"iataCode": "PMI", "name": "Palma", "countryName": "Spain"},
+        "departureDate": "2026-12-04T21:55:00",
+        "arrivalDate": "2026-12-05T00:15:00",
+        "flightNumber": "FR1234",
+        "price": {"value": 39.99, "currencyCode": "EUR"},
+    }
+
+    flight = _with_arrival_times(Ryanair("EUR"))._parse_cheapest_flight(raw)
+
+    assert flight.departureTime == datetime(2026, 12, 4, 21, 55)
+    assert flight.arrivalTime == datetime(2026, 12, 5, 0, 15)
+    assert flight.flightNumber == "FR 1234"
 
 
 def test_currency_comes_from_the_provider(client: TestClient, ryanair_mock: MagicMock) -> None:

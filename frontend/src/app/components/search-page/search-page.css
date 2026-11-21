@@ -5,6 +5,11 @@ form {
   margin-bottom: var(--space-6);
 }
 
+/* "Also compares Flixbus buses: …", right under the route. */
+.bus-hint {
+  margin: 0;
+}
+
 .save-route {
   align-self: flex-start;
   gap: var(--space-2);

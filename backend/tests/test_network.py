@@ -15,6 +15,7 @@ def upstream_airport(code: str, country: str, name: str | None = None) -> dict:
         "city": {"code": code, "name": f"{code} city"},
         "country": {"code": country, "name": country.upper() + "-land"},
         "coordinates": {"latitude": 38.7, "longitude": -9.1},
+        "timeZone": "Europe/Lisbon",
         "base": False,
     }
 
@@ -64,6 +65,7 @@ def test_airports_are_mapped_to_camel_case(client: TestClient, override_network)
         "countryName": "PT-land",
         "latitude": 38.7,
         "longitude": -9.1,
+        "timeZone": "Europe/Lisbon",
     }
 
 

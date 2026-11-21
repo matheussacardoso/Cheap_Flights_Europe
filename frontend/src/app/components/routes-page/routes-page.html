@@ -43,7 +43,8 @@
           <app-loading-indicator title="Loading direct flights…" [compact]="true" />
         } @else {
           <ul class="destinations">
-            @for (airport of trip.destinations(); track airport.code) {
+            @for (item of destinations(); track item.airport.code) {
+              @let airport = item.airport;
               <li>
                 <button
                   type="button"
@@ -59,7 +60,14 @@
                     height="16"
                   />
                   <span class="name">{{ airport.name }}</span>
-                  <span class="meta">{{ airport.countryName }} · {{ airport.code }}</span>
+                  <span class="meta"
+                    >{{ airport.countryName }} · {{ airport.code }}
+                    @if (item.busTag) {
+                      <span class="bus-tag"
+                        ><span aria-hidden="true">🚌</span> {{ item.busTag }}</span
+                      >
+                    }
+                  </span>
                 </button>
               </li>
             }

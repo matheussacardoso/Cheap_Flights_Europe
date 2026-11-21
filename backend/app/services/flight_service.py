@@ -1,7 +1,8 @@
 import logging
 from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date
+from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 from ryanair import Ryanair
@@ -26,6 +27,32 @@ def _destination_filter(destination: str | None, country: str | None) -> dict[st
     return {}
 
 
+@dataclass
+class TimedFlight(Flight):
+    """A ryanair-py `Flight` plus the arrival time (local to the arrival airport)."""
+
+    arrivalTime: datetime | None = None
+
+
+def _with_arrival_times(ryanair: Ryanair) -> Ryanair:
+    """ryanair-py drops the `arrivalDate` that Ryanair's fare API sends; keep it.
+
+    Wraps the SDK's (private) flight parser on this instance. It is used for one-way and round
+    trip fares alike, so every flight becomes a `TimedFlight`.
+    """
+    parse = ryanair._parse_cheapest_flight
+
+    def parse_with_arrival(flight: dict[str, Any]) -> Flight:
+        parsed = parse(flight)
+        arrival = flight.get("arrivalDate")
+        return TimedFlight(
+            **vars(parsed), arrivalTime=datetime.fromisoformat(arrival) if arrival else None
+        )
+
+    ryanair._parse_cheapest_flight = parse_with_arrival
+    return ryanair
+
+
 def _in_parallel[T, R](search: Callable[[T], list[R]], items: Iterable[T]) -> list[R]:
     """Runs a blocking fare query per item on a small thread pool, and flattens the results."""
     with ThreadPoolExecutor(max_workers=FARE_QUERY_WORKERS) as pool:
@@ -41,7 +68,7 @@ class FlightService:
         date_to = params.date_to or params.date_from
 
         try:
-            ryanair = Ryanair(currency=params.currency)
+            ryanair = _with_arrival_times(Ryanair(currency=params.currency))
             flights = _in_parallel(
                 lambda origin: ryanair.get_cheapest_flights(
                     airport=origin, date_from=params.date_from, date_to=date_to, **destination
@@ -72,7 +99,7 @@ class FlightService:
         windows = params.windows()
         destination = _destination_filter(params.destination, params.destination_country)
         try:
-            ryanair = Ryanair(currency=params.currency)
+            ryanair = _with_arrival_times(Ryanair(currency=params.currency))
             if len(params.origin) == 1:
                 trips = self._round_trips(ryanair, params.origin[0], windows, destination)
             else:

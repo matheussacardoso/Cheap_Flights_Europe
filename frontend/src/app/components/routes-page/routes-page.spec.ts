@@ -13,6 +13,7 @@ import {
   answerRoutes,
   routesFor,
 } from '../../testing/network-fixtures';
+import { answerBusNetwork } from '../../testing/bus-fixtures';
 import { RoutesPage } from './routes-page';
 
 @Component({ template: '' })
@@ -48,6 +49,9 @@ describe('RoutesPage', () => {
 
   afterEach(() => {
     answerRoutes(http);
+    // Twice: the bus routes are asked for once the airport ↔ city links arrive.
+    answerBusNetwork(http);
+    answerBusNetwork(http);
     http.verify();
   });
 

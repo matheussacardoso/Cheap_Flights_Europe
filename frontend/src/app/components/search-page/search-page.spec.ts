@@ -9,6 +9,7 @@ import { SearchResults } from '../../services/search-results';
 import { TODAY } from '../../services/trip-period';
 import { TripSelection } from '../../services/trip-selection';
 import { AIRPORTS, PT_ROUTES, routesFor, answerRoutes } from '../../testing/network-fixtures';
+import { answerBusNetwork } from '../../testing/bus-fixtures';
 import { SearchPage } from './search-page';
 
 @Component({ template: '' })
@@ -48,6 +49,9 @@ describe('SearchPage', () => {
 
   afterEach(() => {
     answerRoutes(http);
+    // Twice: the bus routes are asked for once the airport ↔ city links arrive.
+    answerBusNetwork(http);
+    answerBusNetwork(http);
     http.verify();
   });
 

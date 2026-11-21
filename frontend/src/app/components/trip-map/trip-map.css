@@ -108,6 +108,12 @@ svg:active {
   fill: var(--color-disabled);
 }
 
+/* Destinations Flixbus also goes to: a ring around the dot, so plane and bus can be compared. */
+.airport.has-bus circle {
+  stroke: var(--color-map-bus);
+  stroke-width: var(--map-stroke-bold);
+}
+
 .airport[role='button'] {
   cursor: pointer;
 }
@@ -196,6 +202,11 @@ svg:active {
 
 .dot.is-unavailable {
   background-color: var(--color-disabled);
+}
+
+.dot.has-bus {
+  border: var(--space-1) solid var(--color-map-bus);
+  background-color: var(--color-map-airport);
 }
 
 .status {

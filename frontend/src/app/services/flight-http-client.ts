@@ -1,14 +1,16 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { API_BASE_URL } from './api';
+import { API_BASE_URL, toHttpParams } from './api';
 import { Weekday } from './trip-period';
 
 export interface FlightResponse {
   flightNumber: string;
   origin: string;
   destination: string;
+  /** Local to each airport, without an offset (see `Airport.timeZone`). */
   departureTime: string;
+  arrivalTime?: string | null;
   price: number;
   currency: string;
 }
@@ -62,10 +64,4 @@ export class FlightHttpClient {
       params: toHttpParams(params),
     });
   }
-}
-
-/** HttpParams sends empty values too: the optional fields that aren't set are left out. */
-function toHttpParams(params: FlightSearchParams | TripSearchParams): HttpParams {
-  const set = Object.entries(params).filter(([, value]) => !!value && value.length !== 0);
-  return new HttpParams({ fromObject: Object.fromEntries(set) });
 }

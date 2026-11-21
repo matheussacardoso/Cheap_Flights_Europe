@@ -1,0 +1,15 @@
+@let trip = side();
+<strong>{{ trip.total | currency: trip.currency }}</strong>
+@if (trip.isCheapest) {
+  <span class="badge">Cheapest</span>
+}
+@for (leg of [trip.outbound, trip.inbound]; track $index) {
+  <span class="leg">
+    <strong>{{ leg.times }}</strong>
+    @if (leg.duration) {
+      · {{ leg.duration }}
+    }
+    {{ leg.place }}
+  </span>
+  <span class="detail">{{ leg.detail }} · {{ leg.price | currency: trip.currency }}</span>
+}

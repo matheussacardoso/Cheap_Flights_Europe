@@ -12,6 +12,8 @@ export interface Airport {
   countryName: string;
   latitude: number;
   longitude: number;
+  /** IANA zone, e.g. "Europe/Berlin": flight times are local, so durations need it. */
+  timeZone: string;
 }
 
 /** Mirrors backend `RouteResponse`. */

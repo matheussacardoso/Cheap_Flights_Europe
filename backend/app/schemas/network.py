@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import AliasPath, Field, StringConstraints
+from pydantic import AliasChoices, AliasPath, Field, StringConstraints
 
 from app.schemas.base import AppBaseModel, CamelModel
 
@@ -20,6 +20,8 @@ class Airport(AppBaseModel):
     country_name: str = Field(validation_alias=AliasPath("country", "name"))
     latitude: float = Field(validation_alias=AliasPath("coordinates", "latitude"))
     longitude: float = Field(validation_alias=AliasPath("coordinates", "longitude"))
+    # IANA zone, e.g. "Europe/Berlin". Fares give local times, so flight durations need both ends'.
+    time_zone: str = Field(default="UTC", validation_alias=AliasChoices("timeZone", "time_zone"))
 
 
 class UpstreamRoute(AppBaseModel):
@@ -47,6 +49,7 @@ class AirportResponse(CamelModel):
     country_name: str
     latitude: float
     longitude: float
+    time_zone: str
 
 
 class RouteResponse(CamelModel):

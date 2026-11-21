@@ -1,5 +1,5 @@
 <main class="container">
-  <h1>Cheapest dates</h1>
+  <h1>{{ compared() ? 'Plane or bus?' : 'Cheapest dates' }}</h1>
 
   <a routerLink="/search" class="btn btn-secondary btn-back">← New search</a>
 
@@ -7,54 +7,67 @@
     <p class="muted">No round trips found for these days, or your search session expired.</p>
   } @else {
     <p class="form-hint">
-      {{ rows().length }} {{ rows().length === 1 ? 'trip' : 'trips' }}, cheapest first. Prices are
-      for one adult, both flights.
+      {{ rows().length }} {{ rows().length === 1 ? 'week' : 'weeks' }}, cheapest first. Prices are
+      for one adult, there and back.
+      @if (compared()) {
+        Ryanair (✈) next to Flixbus (🚌) between the same cities; bus prices include Flixbus's
+        platform fee. Times are local.
+      }
     </p>
+    @if (summary(); as text) {
+      <p class="summary">{{ text }}</p>
+    }
+    @if (busNote(); as note) {
+      <p class="bus-note"><span aria-hidden="true">🚌</span> {{ note }}</p>
+    }
+
     <table>
       <thead>
         <tr>
           <th scope="col">Dates</th>
           <th scope="col">To</th>
-          <th scope="col">Outbound</th>
-          <th scope="col">Return</th>
-          <th scope="col">Total</th>
+          <th scope="col"><span aria-hidden="true">✈</span> Ryanair</th>
+          @if (compared()) {
+            <th scope="col"><span aria-hidden="true">🚌</span> Flixbus</th>
+            <th scope="col">Better</th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (
-          row of rows();
-          track row.trip.outbound.departureTime + row.trip.outbound.destination;
-          let first = $first
-        ) {
-          @let trip = row.trip;
-          <tr [class.is-cheapest]="first">
+        @for (row of rows(); track row.key) {
+          <tr [class.is-cheapest]="row.isCheapest">
             <td>
-              <strong>{{ trip.outbound.departureTime | date: 'EEE d MMM' }}</strong>
-              → {{ trip.inbound.departureTime | date: 'EEE d MMM' }}
+              <strong>{{ row.outDate | date: 'EEE d MMM' }}</strong>
+              → {{ row.backDate | date: 'EEE d MMM' }}
             </td>
-            <td>{{ row.destinationName }} ({{ trip.outbound.destination }})</td>
-            <td>
-              <strong>{{ trip.outbound.departureTime | date: 'HH:mm' }}</strong>
-              from {{ row.outboundOriginName }}
-              <span class="detail"
-                >{{ trip.outbound.flightNumber }} ·
-                {{ trip.outbound.price | currency: trip.outbound.currency }}</span
-              >
-            </td>
-            <td>
-              <strong>{{ trip.inbound.departureTime | date: 'HH:mm' }}</strong>
-              to {{ row.inboundDestinationName }}
-              <span class="detail"
-                >{{ trip.inbound.flightNumber }} ·
-                {{ trip.inbound.price | currency: trip.inbound.currency }}</span
-              >
-            </td>
-            <td>
-              <strong>{{ trip.totalPrice | currency: trip.outbound.currency }}</strong>
-              @if (first) {
-                <span class="badge">Cheapest</span>
+            <td>{{ row.destinationName }} {{ row.destinationCode }}</td>
+            <td [class.is-winner]="compared() && row.verdict.winner === 'flight'">
+              @if (row.flight; as side) {
+                <app-round-trip-cell [side]="side" />
+              } @else {
+                <span class="muted">No flight</span>
               }
             </td>
+            @if (compared()) {
+              <td [class.is-winner]="row.verdict.winner === 'bus'">
+                @if (row.bus; as side) {
+                  <app-round-trip-cell [side]="side" />
+                } @else {
+                  <span class="muted">No bus</span>
+                }
+              </td>
+              <td>
+                <strong>
+                  {{ row.verdict.text }}
+                  @if (row.verdict.amount !== null) {
+                    {{ row.verdict.amount | currency: row.verdict.currency }}
+                  }
+                </strong>
+                @if (row.verdict.detail) {
+                  <span class="detail wrap">{{ row.verdict.detail }}</span>
+                }
+              </td>
+            }
           </tr>
         }
       </tbody>
