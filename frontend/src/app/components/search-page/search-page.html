@@ -28,6 +28,11 @@
             </button>
           </div>
         }
+        @if (busHint(); as hint) {
+          <p class="form-hint bus-hint" aria-live="polite">
+            <span aria-hidden="true">🚌</span> {{ hint }}
+          </p>
+        }
         @if (showTripError()) {
           <p class="field-error" role="alert">Choose where you fly from and to.</p>
         }

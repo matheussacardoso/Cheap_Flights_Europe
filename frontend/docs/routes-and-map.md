@@ -78,6 +78,20 @@ Results:
 - Round trip: `/search/trips`, every trip cheapest first. The cheapest row is highlighted with a "Cheapest" badge.
 - **Airports in the results:** each flight shows where it leaves from and lands ("14:55 from Dusseldorf Weeze", "06:15 to Cologne"), since with several departure airports they can differ.
 
+#### Plane or bus (Ryanair vs Flixbus)
+
+Round trips also compare Flixbus buses between the airports' cities (each airport stands for a Flixbus city: Beauvais → Paris).
+
+- **Under the route** (round trip only), a polite live line says what will happen: "🚌 Also compares Flixbus buses: Berlin → Budapest." or why not ("Flixbus doesn't go to Palma de Mallorca: flights only.", "Choose a destination airport, not a whole country, to compare with Flixbus."). The bus city names are shown because they can differ from the airport's.
+- **Loading** adds ", by plane and by bus" to the detail when buses are compared.
+- **Results** (`/search/trips`) are titled **Plane or bus?** when buses were found, else **Cheapest dates** as before:
+  - columns: Dates, To, **✈ Ryanair**, **🚌 Flixbus**, **Better**; one row per week, cheapest first by the week's best option;
+  - each side (`components/round-trip-cell/`): the total (and the **Cheapest** badge for the cheapest trip of the search), then each way: "07:50 → 09:20 · 1h 30m from Berlin Brandenburg" and, smaller, "FR 196 · €43.99" or "2 changes · via Dresden, Vienna · €34.46";
+  - **Better:** "Bus cheaper by €10.41" / "Plane cheaper by €0.46" / "Same price", with "The plane is 14h 5m faster on the way out." below; "Only by plane" / "Only by bus" and "No flight" / "No bus" when a week has one side only;
+  - the cheaper side of each week has a primary bar on its left (the Better column says it in words too);
+  - above the table: "Ryanair is cheaper in 2 weeks, Flixbus in 7 weeks.", or the note on why buses weren't compared.
+- **Times are local to each stop**, as on the ticket: read from the API's text (`clockTime`), never converted to the browser's zone. Flight durations use both airports' time zones.
+
 The full requirements are in `docs/requirements.md`.
 
 ## 3. Choosing a trip
@@ -177,7 +191,8 @@ An ARIA 1.2 combobox: `role="combobox"` with `aria-expanded`, `aria-controls` an
   - With nothing chosen, names appear only from 3× zoom.
   - Placement is recomputed when a zoom gesture ends, not on every frame.
 - **Constant on-screen size:** dot radius, text and arrow sizes are divided by the zoom `k`. Strokes use `vector-effect: non-scaling-stroke` with the `--map-stroke*` tokens.
-- **Legend** (bottom-left) matches the state: "Ryanair airport: click to fly from it" before From is chosen, then "Your trip / Direct flight / No direct flight".
+- **Legend** (bottom-left) matches the state: "Ryanair airport: click to fly from it" before From is chosen, then "Your trip / Direct flight / No direct flight", plus "Flixbus too" when some destination has a bus.
+- **Flixbus too:** once From is chosen, destinations that Flixbus also reaches from the same city get a green ring (`--color-map-bus`) and "Also by bus" in their tooltip. The destination list in the sidebar tags them "🚌 Bus too" (direct bus) or "🚌 Bus with a change", after the country and code. Nothing else about buses is drawn: no bus lines or bus stops.
 
 ### Accessibility
 
@@ -247,6 +262,7 @@ Added for these screens, in `src/styles.css`:
 | `--field-min-width`                    | Minimum width of form fields in a grid                     |
 | `--map-height-mobile`, `--list-max-height-mobile` | Phone layout                                    |
 | `--color-map-airport`, `--color-map-route` | Airport dots and possible flights (at least 3:1 on land) |
+| `--color-map-bus`                      | Ring of destinations Flixbus also reaches (4.1:1 on land) |
 | `--map-stroke`, `--map-stroke-dot`, `--map-stroke-bold`, `--map-faded-opacity` | Map strokes, in on-screen pixels |
 | `--radius-round`                       | Circles (swap button, legend dots)                         |
 | `--focus-width`, `--focus-offset`, `--z-dropdown` | Focus ring, and the combobox popup layer        |

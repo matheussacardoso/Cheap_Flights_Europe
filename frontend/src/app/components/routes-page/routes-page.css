@@ -115,6 +115,18 @@
   font-weight: bold;
 }
 
+/* "🚌 Bus too": Flixbus also goes there, so the two can be compared on Search. */
+.bus-tag {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-muted);
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .meta {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);

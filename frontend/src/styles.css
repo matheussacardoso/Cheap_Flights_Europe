@@ -51,6 +51,8 @@
   --color-map-border: #b3b3b3;
   --color-map-airport: #2563c9;
   --color-map-route: #6688cc;
+  /* Ring of destinations Flixbus also goes to (green, 4.1:1 on land). */
+  --color-map-bus: #3b8f12;
   /* Map strokes are SVG units drawn with non-scaling-stroke, so they are on-screen pixels. */
   --map-stroke: 1;
   --map-stroke-dot: 1.5;

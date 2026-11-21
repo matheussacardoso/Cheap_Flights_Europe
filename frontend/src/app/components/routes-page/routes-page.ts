@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FlagUrlPipe } from '../../pipes/flag-url-pipe';
+import { BusAvailability } from '../../services/bus-availability';
 import { SavedRoutes } from '../../services/saved-routes';
 import { tripQueryParams, syncTripWithUrl } from '../../services/trip-url';
 import { TripSelection } from '../../services/trip-selection';
@@ -23,11 +24,25 @@ import { TripMap } from '../trip-map/trip-map';
 export class RoutesPage {
   protected readonly trip = inject(TripSelection);
   protected readonly savedRoutes = inject(SavedRoutes);
+  private readonly bus = inject(BusAvailability);
 
   protected readonly searchParams = computed(() => tripQueryParams(this.trip.searchSelection()));
 
+  /** The direct destinations, each with a tag when Flixbus goes there too. */
+  protected readonly destinations = computed(() => {
+    const byBus = this.bus.busToAirport();
+    return this.trip.destinations().map((airport) => {
+      const direct = byBus.get(airport.code);
+      return {
+        airport,
+        busTag: direct === undefined ? '' : direct ? 'Bus too' : 'Bus with a change',
+      };
+    });
+  });
+
   constructor() {
     this.trip.loadAirports();
+    this.bus.load();
     syncTripWithUrl();
   }
 }

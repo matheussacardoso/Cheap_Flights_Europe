@@ -49,6 +49,9 @@
       <li><span class="dot is-origin"></span>Your trip</li>
       <li><span class="dot is-available"></span>Direct flight</li>
       <li><span class="dot is-unavailable"></span>No direct flight</li>
+      @if (showsBus()) {
+        <li><span class="dot has-bus"></span>Flixbus too</li>
+      }
     } @else {
       <li><span class="dot is-available"></span>Ryanair airport: click to fly from it</li>
     }
@@ -112,7 +115,7 @@
       <g class="airports">
         @for (airport of airportViews(); track airport.code) {
           <g
-            [attr.class]="'airport is-' + airport.status"
+            [attr.class]="'airport is-' + airport.status + (airport.hasBus ? ' has-bus' : '')"
             [attr.role]="airport.selectable ? 'button' : null"
             [attr.tabindex]="airport.selectable ? 0 : null"
             [attr.aria-label]="airport.selectable ? airport.label : null"

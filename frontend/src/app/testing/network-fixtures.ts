@@ -15,6 +15,7 @@ export function airport(
     countryName,
     latitude,
     longitude,
+    timeZone: 'Europe/Lisbon',
   };
 }
 

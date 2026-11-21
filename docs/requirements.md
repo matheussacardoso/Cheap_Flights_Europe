@@ -104,6 +104,47 @@ GET /flights/trips?origin=CGN&destination=PMI&date_from=2026-12-01&date_to=2027-
 - Uploading never replaces the list: new routes are added after the saved ones, duplicates are ignored, and routes with airports Ryanair no longer serves are skipped and counted.
 - It runs in the browser only; nothing is sent to the backend.
 
+## Plane or bus? (Ryanair vs Flixbus)
+
+The user isn't sure whether flying or taking the bus is better for a route. The app answers it on the same screens, between Ryanair's airports: no separate bus map, no thousands of bus stops.
+
+**Each airport stands for a Flixbus city** (`GET /bus/airport-cities`):
+
+1. the city Ryanair names for the airport, if Flixbus has one with that name in the same country within 100 km: Paris for Beauvais, Düsseldorf for Weeze, Frankfurt for Hahn;
+2. otherwise the nearest Flixbus city in the same country within 30 km: Cluj-Napoca for Cluj, Darlington for Teesside.
+
+177 of Ryanair's 222 airports have one. Those without are mostly islands and Morocco (Palma, Lanzarote, Madeira, Agadir…), where there's no bus to compare.
+
+**How it works for the user:**
+
+1. **Routes:** after choosing **From**, destinations that Flixbus also reaches from the same city get a green ring on the map ("Flixbus too" in the legend) and a "🚌 Bus too" or "🚌 Bus with a change" tag in the list.
+2. **Search, round trip:** a line under the route says what will be compared, e.g. "Also compares Flixbus buses: Berlin → Budapest", or why it can't ("Flixbus doesn't go to Palma de Mallorca: flights only.", "Choose a destination airport, not a whole country, …").
+3. **Results ("Plane or bus?"):** one row per week, cheapest first, with the Ryanair trip next to the Flixbus trip:
+   - each side: the total, then each way with times (local to each end), duration, and the flight number or "2 changes · via Dresden, Vienna";
+   - **Better:** "Bus cheaper by €10.41" or "Plane cheaper by €0.46", and "The plane is 14h 5m faster on the way out"; "Only by plane" / "Only by bus" when one has no trip that week;
+   - a summary: "Ryanair is cheaper in 2 weeks, Flixbus in 7 weeks."
+
+**Rules:**
+
+- Only **round trips** compare; one-way searches are flights only.
+- Only a **destination airport** compares, not "any airport in a country".
+- Several departure airports become their (distinct) Flixbus cities.
+- The bus search never fails the flight search: if it can't run or fails, the results say why and show flights only.
+- **Durations:** flight times are local to each airport (no offset), so durations use both airports' `timeZone`; bus times carry their offset.
+
+## Flixbus API (`/bus/*`)
+
+Same logic as flights:
+
+- `GET /bus/airport-cities`: the Flixbus city of each Ryanair airport that has one (see above).
+- `GET /bus/cities`: every Flixbus city in Europe and nearby countries (about 4,000), with its country and coordinates. Cities are identified by UUID. Flixbus's cities in the Americas, India and Australia are left out, here and in routes.
+- `GET /bus/routes?origin=<id>`: the cities reachable from 1 to 3 departure cities. `direct` is false when the trip needs a change.
+- `GET /bus/cheapest`: the cheapest ride per day and city pair, over up to 14 days.
+- `GET /bus/trips`: round trips on set weekdays (e.g. every Thursday to Monday), at most 92 days. With several departure cities, the return may end at another one.
+- Both searches need a destination city or a country. A country means its 5 most popular cities reachable from the departure cities. Flixbus has no "to anywhere" search.
+- Unlike flights, rides with changes are included, with the number of `transfers` and the change cities' names (`via`). Prices include Flixbus's platform fee.
+- Flixbus answers one city pair and one day per query. A search that would need more than 200 queries is refused before it starts. A month of Thursday-to-Monday trips from Berlin to any Czech city takes about 5 seconds.
+
 ## Not built yet (from the README's vision)
 
 - Other low-cost airlines (easyJet, Wizz Air, Vueling, …).

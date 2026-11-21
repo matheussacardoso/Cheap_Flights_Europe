@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Finds cheap, direct, low-cost flights in Europe for long-weekend trips. The root `README.md` describes the product vision: multi-airline search, Thu–Mon and Fri–Tue presets, time windows and price caps. `docs/requirements.md` lists the requirements and what is built.
 
-Today the app only covers Ryanair, through `ryanair-py`. It has one-way searches, and round trips on set weekdays (e.g. every Thursday to Monday in a period). Multi-airline search, time windows and price caps are not built yet.
+Today the app covers Ryanair flights, through `ryanair-py`. It has one-way searches, and round trips on set weekdays (e.g. every Thursday to Monday in a period). Round trips are also compared with Flixbus buses between the airports' cities ("plane or bus?", `/bus/*`). Multi-airline search, time windows and price caps are not built yet.
 
 - `backend/`: FastAPI service (Python ≥ 3.12)
 - `frontend/`: Angular 22 single-page app (standalone components, zoneless, Vitest)
@@ -49,14 +49,20 @@ npm run build:map                             # regenerate public/maps/europe.js
 - `app/main.py`: the `create_app(settings)` factory. It sets up logging, middleware, CORS, exception handlers, routers and the `lifespan`.
 - `app/core/`: cross-cutting code. `config.py` holds `Settings`, `logging.py` + `middleware.py` handle structured logs with a per-request `request_id`, and `exceptions.py` holds domain exceptions plus the handlers that map them to HTTP responses.
 - Routes stay thin. They don't catch exceptions or talk to SDKs directly. Services raise domain exceptions, and the handlers in `core/exceptions.py` turn them into HTTP responses.
-- External data has two sources:
+- External data has three sources:
   - Fares come from `ryanair-py`, which is sync, through `FlightService` and `/flights/*`.
+    - `ryanair-py` drops the `arrivalDate` Ryanair sends; `_with_arrival_times()` wraps its parser so flights keep `arrivalTime`. Flight times have no offset (local to each airport); airports carry their `timeZone` (`/network/airports`) for durations.
     - `/flights/cheapest` returns one-way fares.
     - `/flights/trips` returns round trips on set weekdays (at most 92 days), cheapest first. The fare queries run on a small thread pool inside the sync service.
     - Both take 1 to 3 departure airports as a repeated `origin` param.
     - With one departure airport, `/flights/trips` makes one Ryanair round-trip query per week.
     - With several, the return may land at another of them, which round-trip fares can't express. `_open_jaw_trips` combines one-way fares instead: outbound per origin and week, return per destination airport and week.
   - The route network (active airports and the direct routes per airport) comes from Ryanair's unofficial public website API, through `NetworkService` and `/network/*`. It is async, uses the shared `httpx.AsyncClient` created in the `lifespan`, and keeps an in-memory TTL cache per worker. Because that API is unofficial, any upstream or parsing failure becomes a 502.
+  - Buses (cities, routes and fares) come from Flixbus's unofficial public API (`global.api.flixbus.com`), through `BusNetworkService` and `BusService` and `/bus/*`. Both are async and share a second `httpx.AsyncClient` from the `lifespan`. We call the API directly: the `flixbus` PyPI package installs a global `requests_cache` on import (which would also cache Ryanair's calls), writes SQLite files and scrapes HTML.
+    - Cities are identified by UUID, not IATA codes. `/bus/cities` lists all of them (paged upstream with `offset`) and `/bus/routes` lists the cities reachable from 1 to 3 departure cities, with `direct: false` when a change is needed. Both only keep cities in Europe and nearby (`SERVED_COUNTRIES`: Europe, Turkey, the Caucasus, North Africa and the Middle East), so Flixbus's cities in the Americas, India and Australia never appear. Both are TTL-cached like `NetworkService`. Routes are per city, not per country: a country such as Germany has over 1,000 Flixbus cities.
+    - Flixbus searches one city pair and one day per query, and can't search "to anywhere", so bus searches need `destination` or `destination_country`. A country means its `MAX_COUNTRY_DESTINATIONS` most popular cities reachable from the origins. `/bus/cheapest` returns the cheapest ride per day and city pair (at most 14 days). `/bus/trips` builds every round trip from one-way rides, like `_open_jaw_trips`, so the return may end at another departure city.
+    - `/bus/airport-cities` links each Ryanair airport to a Flixbus city, through `AirportCityService` (`match_airport_cities`): the city Ryanair names for the airport (same country, within `SAME_NAME_MAX_KM`, accents ignored), else the nearest city within `NEAREST_MAX_KM`. About 177 of 222 airports match. It's how the frontend compares flights with buses.
+    - Rides may include changes (`transfers`, and the change cities' names in `via`, looked up from the cached city list). Prices include Flixbus's platform fee. Searches that would need more than `MAX_FARE_QUERIES` queries are refused with a 422 (`InvalidSearchError`) before the first one, and so are Flixbus's own 400s (unknown city, past date).
 - Ryanair's fare API only matches **lowercase** country codes (`es`, not `ES`). The API accepts uppercase codes, and `FlightService` lowercases them.
 
 ### Backend rules (apply to all backend code)
@@ -96,7 +102,10 @@ npm run build:map                             # regenerate public/maps/europe.js
 - The app is **zoneless** (`provideZonelessChangeDetection()`), so UI updates must come from signals or template events, not zone.js-triggered change detection.
 - **Routes, map and nav bar UI rules:** see `frontend/docs/routes-and-map.md`. Update it when you change how these screens behave.
 - **Pages:** a nav bar (`components/nav-bar/`) links two pages. **Routes** (`/`, `components/routes-page/`) is a full-screen map with a sidebar. **Search** (`/search`, `components/search-page/`) has the dates and the price search. One-way results are at `/search/results` (`components/flight-results-page/`), and round trips on set weekdays at `/search/trips` (`components/trip-results-page/`). Both read the last search from `SearchResults` (`services/search-results.ts`), in memory only. Pages are lazy-loaded in `app.routes.ts`. Weekday presets and the period maths are in `services/trip-period.ts`.
-- **HTTP:** `FlightHttpClient` (`/flights/*`) and `NetworkHttpClient` (`/network/*`, cached for the session) are stateless wrappers around `HttpClient`. `MapData` loads the static map shapes.
+- **HTTP:** `FlightHttpClient` (`/flights/*`), `NetworkHttpClient` (`/network/*`), `BusHttpClient` (`/bus/trips`) and `BusNetworkHttpClient` (`/bus/airport-cities`, `/bus/routes`) are stateless wrappers around `HttpClient`; the network ones cache for the session. `toHttpParams()` in `services/api.ts` builds query params. `MapData` loads the static map shapes.
+- **Plane or bus:** the app stays airport-based; Flixbus is only compared. `BusAvailability` (`services/bus-availability.ts`) links the trip's airports to Flixbus cities: `busToAirport` (destinations the departure city's buses reach, for the "🚌 Bus too" tags and the map's green rings), `busTrip` (the bus side of the trip) and `compareNote` (why it can't compare, or ''). It requests nothing until a page calls `load()` (Routes and Search do).
+  - A round-trip search runs `/flights/trips` and `/bus/trips` together (`forkJoin`); the bus side never fails the search, it stores a note instead (`SearchResults.busNote`). One-way stays flights only.
+  - `TripResultsPage` puts them side by side per week (`RoundTripCell` for each side) with a verdict. Show times with `clockTime()` and durations with `durationMinutes()` (`services/ride-summary.ts`), never the date pipe: times are local to each stop.
 - **Trip state:** `TripSelection` (`services/trip-selection.ts`) is the single source of truth for the trip, airport first: `origins` (1 to 3 airports), then either `destination` (an airport) or `destinationCountry` ("any airport in a country", which maps to a `destination_country` search).
   - `origin` is the first, main departure airport; destinations and map lines come from it.
   - Extra departures can only be added once a destination is chosen, and must fly there. Which airports do is read from the destination country's routes.
@@ -173,4 +182,6 @@ npm run build:map                             # regenerate public/maps/europe.js
 
 - Backend tests never call real external APIs. `backend/tests/conftest.py` provides a `client` (TestClient), fixtures that monkeypatch the external SDK, and `override_service`, which swaps dependencies through `app.dependency_overrides`. Follow the same pattern for new services.
 - `override_network` swaps `NetworkService`. Network tests build the service on `httpx.MockTransport`.
-- Frontend specs live next to the code they test (`*.spec.ts`) and run on Vitest. HTTP calls are mocked with `HttpTestingController`, and shared airport/route fixtures live in `src/app/testing/network-fixtures.ts`.
+- `override_airport_cities` swaps `AirportCityService`; the matching itself is a pure function (`match_airport_cities`), tested directly.
+- `override_bus` swaps both bus services. `tests/test_bus.py` builds them on a fake Flixbus upstream (`FakeFlixbus`, on `httpx.MockTransport`).
+- Frontend specs live next to the code they test (`*.spec.ts`) and run on Vitest. HTTP calls are mocked with `HttpTestingController`, and shared airport/route fixtures live in `src/app/testing/network-fixtures.ts` (airport ↔ Flixbus city links and bus routes in `bus-fixtures.ts`). Specs of pages that call `BusAvailability.load()` answer its requests with `answerBusNetwork(http)` before `http.verify()`.

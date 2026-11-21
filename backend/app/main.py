@@ -1,16 +1,19 @@
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import flights, health, network
+from app.api.routes import bus, flights, health, network
 from app.core.config import Settings, get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
 from app.core.middleware import request_context_middleware
+from app.services.airport_city_service import AirportCityService
+from app.services.bus_network_service import BusNetworkService
+from app.services.bus_service import BusService
 from app.services.network_service import NetworkService
 
 logger = logging.getLogger(__name__)
@@ -21,12 +24,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Shared resources are opened once here, stored on app.state and closed after `yield`.
     settings: Settings = app.state.settings
     logger.info("Starting up", extra={"environment": settings.environment})
-    async with httpx.AsyncClient(
-        base_url=settings.ryanair_web_api_url,
-        timeout=settings.upstream_timeout_seconds,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; cheap-flights-backend)"},
-    ) as client:
-        app.state.network_service = NetworkService(client, settings.network_cache_ttl_seconds)
+
+    def upstream_client(base_url: str) -> httpx.AsyncClient:
+        return httpx.AsyncClient(
+            base_url=base_url,
+            timeout=settings.upstream_timeout_seconds,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; cheap-flights-backend)"},
+        )
+
+    async with AsyncExitStack() as clients:
+        ryanair = await clients.enter_async_context(upstream_client(settings.ryanair_web_api_url))
+        flixbus = await clients.enter_async_context(upstream_client(settings.flixbus_api_url))
+        ttl = settings.network_cache_ttl_seconds
+        app.state.network_service = NetworkService(ryanair, ttl)
+        app.state.bus_network_service = BusNetworkService(flixbus, ttl)
+        app.state.bus_service = BusService(flixbus, app.state.bus_network_service)
+        app.state.airport_city_service = AirportCityService(
+            app.state.network_service, app.state.bus_network_service
+        )
         yield
     logger.info("Shutting down")
 
@@ -65,6 +80,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(flights.router)
     app.include_router(network.router)
+    app.include_router(bus.router)
     return app
 
 

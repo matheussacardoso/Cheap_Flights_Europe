@@ -8,10 +8,24 @@
   overflow-x: auto;
 }
 
-/* "FR 7208 · €44.84" under the time, kept on one line. */
+td {
+  vertical-align: top;
+}
+
+/* "Ryanair is cheaper in 5 weeks, Flixbus in 3." */
+.summary {
+  margin: 0 0 var(--space-4);
+  font-weight: bold;
+}
+
+.bus-note {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+}
+
+/* The plane's time advantage, under the verdict. */
 .detail {
   display: block;
-  white-space: nowrap;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
@@ -20,12 +34,7 @@
   background-color: var(--color-primary-subtle);
 }
 
-.badge {
-  display: inline-block;
-  margin-left: var(--space-2);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-primary);
-  color: var(--color-on-color);
-  font-size: var(--font-size-sm);
+/* The cheaper of plane and bus in a week: a bar on its left, not color alone ("Better" says it). */
+td.is-winner {
+  box-shadow: inset var(--space-1) 0 0 var(--color-primary);
 }

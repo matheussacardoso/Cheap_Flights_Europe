@@ -16,6 +16,7 @@ import { geoConicConformal, geoPath } from 'd3-geo';
 import { Selection, select } from 'd3-selection';
 import 'd3-transition';
 import { ZoomBehavior, ZoomTransform, zoom, zoomIdentity } from 'd3-zoom';
+import { BusAvailability } from '../../services/bus-availability';
 import { Airport } from '../../services/network-http-client';
 import { CountryShape, MapData } from '../../services/map-data';
 import { TripSelection, airportLabel } from '../../services/trip-selection';
@@ -82,6 +83,8 @@ interface MapAirport {
   status: AirportStatus;
   selectable: boolean;
   note: string;
+  /** A destination Flixbus also goes to (ringed), so plane and bus can be compared. */
+  hasBus: boolean;
 }
 
 /** An airport as drawn at the current zoom: where its name goes. */
@@ -117,6 +120,7 @@ interface Zoomer {
 })
 export class TripMap {
   protected readonly trip = inject(TripSelection);
+  private readonly bus = inject(BusAvailability);
   private readonly mapData = inject(MapData);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -192,6 +196,7 @@ export class TripMap {
     const destinationCountry = this.trip.destinationCountry();
     const routesKnown = !this.trip.loadingRoutes();
     const originName = this.trip.originAirport()?.name ?? '';
+    const byBus = this.bus.busToAirport();
 
     const dots = this.trip.airports().map((airport): MapAirport => {
       let status: AirportStatus = 'available';
@@ -211,8 +216,14 @@ export class TripMap {
         }
       }
       const [x, y] = projection([airport.longitude, airport.latitude]) ?? [NaN, NaN];
+      const hasBus =
+        (status === 'available' || status === 'destination') && byBus.has(airport.code);
+      if (hasBus) {
+        note = note ? `${note}; also by bus` : 'Also by bus';
+      }
       return {
         code: airport.code,
+        hasBus,
         label: airportLabel(airport),
         title: note ? `${airportLabel(airport)}: ${note}` : airportLabel(airport),
         name: airport.name,
@@ -297,6 +308,9 @@ export class TripMap {
   protected readonly hasChosenFlight = computed(() =>
     this.flights().some((flight) => flight.chosen),
   );
+
+  /** The legend shows the bus ring only when some destination has one. */
+  protected readonly showsBus = computed(() => this.airports().some((airport) => airport.hasBus));
 
   /** What the map zooms to: the trip, the departure airport's network, or everything. */
   private readonly focusPoints = computed<[number, number][]>(() => {

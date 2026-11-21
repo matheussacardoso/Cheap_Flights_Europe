@@ -21,6 +21,8 @@ class Settings(BaseSettings):
 
     # Ryanair's public website API (unofficial), used for the airport/route network.
     ryanair_web_api_url: str = "https://www.ryanair.com"
+    # Flixbus's public website API (unofficial), used for bus cities, routes and fares.
+    flixbus_api_url: str = "https://global.api.flixbus.com"
     network_cache_ttl_seconds: int = 86400
     upstream_timeout_seconds: float = 10.0
 

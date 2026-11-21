@@ -20,14 +20,14 @@ CurrencyCode = Annotated[
 MAX_ORIGINS = 3
 
 
-def _unique(codes: list[str]) -> list[str]:
+def unique(codes: list[str]) -> list[str]:
     return list(dict.fromkeys(codes))
 
 
 Origins = Annotated[
     list[IataCode],
     Field(min_length=1, max_length=MAX_ORIGINS),
-    AfterValidator(_unique),
+    AfterValidator(unique),
 ]
 
 
@@ -60,7 +60,9 @@ class FlightResponse(CamelModel):
     flight_number: str
     origin: str
     destination: str
+    # Both local to their airport (no offset): see the airports' `timeZone` for durations.
     departure_time: datetime
+    arrival_time: datetime | None = None
     price: float
     currency: str
 
@@ -85,30 +87,23 @@ class Weekday(StrEnum):
 MAX_TRIP_PERIOD_DAYS = 92
 
 
-class TripSearchParams(AppBaseModel):
-    """Query parameters for round trips on fixed weekdays, e.g. Thursday to Monday."""
+class WeeklyPeriod(AppBaseModel):
+    """Weekly trips on fixed weekdays in a period, e.g. every Thursday to Monday in December.
 
-    origin: Origins = Field(
-        description="1 to 3 departure airports; repeat it: origin=CGN&origin=NRN"
-    )
-    destination: IataCode | None = Field(default=None, description="3-letter IATA code (e.g., PMI)")
-    destination_country: CountryCode | None = Field(
-        default=None, description="2-letter ISO country code: any airport in it (e.g., ES)"
-    )
-    date_from: date = Field(description="First day the outbound flight may leave (YYYY-MM-DD)")
-    date_to: date = Field(description="Last day the outbound flight may leave (YYYY-MM-DD)")
-    depart_day: Weekday = Field(description="Weekday of the outbound flight (e.g., thursday)")
-    return_day: Weekday = Field(description="Weekday of the return flight (e.g., monday)")
-    currency: CurrencyCode = Field(default="EUR", description="Currency code (e.g., EUR, GBP, USD)")
+    Shared by the flight and bus trip searches.
+    """
+
+    date_from: date = Field(description="First day the outbound trip may leave (YYYY-MM-DD)")
+    date_to: date = Field(description="Last day the outbound trip may leave (YYYY-MM-DD)")
+    depart_day: Weekday = Field(description="Weekday of the outbound trip (e.g., thursday)")
+    return_day: Weekday = Field(description="Weekday of the return trip (e.g., monday)")
 
     @model_validator(mode="after")
-    def check_consistency(self) -> Self:
+    def check_period(self) -> Self:
         if self.date_to < self.date_from:
             raise ValueError("date_to must be on or after date_from")
         if (self.date_to - self.date_from).days > MAX_TRIP_PERIOD_DAYS:
             raise ValueError(f"The period can be at most {MAX_TRIP_PERIOD_DAYS} days long")
-        if self.destination and self.destination_country:
-            raise ValueError("Send either destination or destination_country, not both")
         if not self.windows():
             raise ValueError(f"There is no {self.depart_day.value} between date_from and date_to")
         return self
@@ -128,6 +123,25 @@ class TripSearchParams(AppBaseModel):
             (first + timedelta(days=d), first + timedelta(days=d + self.nights))
             for d in range(0, (self.date_to - first).days + 1, 7)
         ]
+
+
+class TripSearchParams(WeeklyPeriod):
+    """Query parameters for round trips on fixed weekdays, e.g. Thursday to Monday."""
+
+    origin: Origins = Field(
+        description="1 to 3 departure airports; repeat it: origin=CGN&origin=NRN"
+    )
+    destination: IataCode | None = Field(default=None, description="3-letter IATA code (e.g., PMI)")
+    destination_country: CountryCode | None = Field(
+        default=None, description="2-letter ISO country code: any airport in it (e.g., ES)"
+    )
+    currency: CurrencyCode = Field(default="EUR", description="Currency code (e.g., EUR, GBP, USD)")
+
+    @model_validator(mode="after")
+    def check_destination(self) -> Self:
+        if self.destination and self.destination_country:
+            raise ValueError("Send either destination or destination_country, not both")
+        return self
 
 
 class TripResponse(CamelModel):
