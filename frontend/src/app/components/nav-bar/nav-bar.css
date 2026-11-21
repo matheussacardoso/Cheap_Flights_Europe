@@ -1,27 +1,38 @@
+/* The night-blue toolbar: brand on the left, then the pages. */
 .nav-bar {
-  display: flex;
-  align-items: center;
+  --mat-toolbar-container-background-color: var(--color-primary);
+  --mat-toolbar-container-text-color: var(--color-on-color);
+  --mat-toolbar-standard-height: var(--nav-height);
+  --mat-toolbar-mobile-height: var(--nav-height);
+
   gap: var(--space-8);
-  height: var(--nav-height);
   padding: 0 var(--space-4);
-  background-color: var(--color-primary);
-  color: var(--color-on-color);
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-a:focus-visible {
-  outline-color: var(--color-on-color);
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-weight: bold;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand:focus-visible {
+  outline-color: var(--color-on-color);
+}
+
+/* The gold compass star. */
+.star {
+  width: var(--space-6);
+  height: var(--space-6);
+  fill: var(--color-gold-on-primary);
+}
+
+.brand-name {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .links {
@@ -32,22 +43,21 @@ a:focus-visible {
   list-style: none;
 }
 
+/* Text buttons on the night blue. */
 .links a {
-  display: flex;
-  align-items: center;
-  height: var(--control-height);
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-sm);
+  --mat-button-text-label-text-color: var(--color-on-color);
+  --mat-button-text-state-layer-color: var(--color-on-color);
 }
 
-.links a:hover {
-  background-color: var(--color-on-color-hover);
+.links a:focus-visible {
+  outline: var(--focus-width) solid var(--color-on-color);
 }
 
-/* The current page: a solid tab, not just a color change. */
+/* The current page: a gold tab, not just a color change. */
 .links a.is-active {
-  background-color: var(--color-on-color);
-  color: var(--color-primary);
+  --mat-button-text-label-text-color: var(--color-primary);
+
+  background-color: var(--color-gold-on-primary);
   font-weight: bold;
 }
 
@@ -56,7 +66,7 @@ a:focus-visible {
     gap: var(--space-4);
   }
 
-  .brand {
-    font-size: var(--font-size-sm);
+  .brand-name {
+    font-size: var(--font-size-md);
   }
 }

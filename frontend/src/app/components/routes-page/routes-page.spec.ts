@@ -84,7 +84,7 @@ describe('RoutesPage', () => {
     trip.selectDestinationCountry('ES');
     await harness.fixture.whenStable();
 
-    element.querySelector<HTMLAnchorElement>('a.btn-primary')!.click();
+    element.querySelector<HTMLAnchorElement>('a.search-link')!.click();
     await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/search?from=OPO&to_country=ES');
   });

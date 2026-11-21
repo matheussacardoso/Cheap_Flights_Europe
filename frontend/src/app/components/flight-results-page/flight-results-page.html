@@ -1,34 +1,46 @@
 <main class="container">
   <h1>Flights found</h1>
 
-  <a routerLink="/search" class="btn btn-secondary btn-back">← New search</a>
+  <a matButton="outlined" routerLink="/search" class="btn-back">
+    <mat-icon>arrow_back</mat-icon> New search
+  </a>
 
   @if (flights().length === 0) {
-    <p class="muted">No flights found, or your search session expired.</p>
+    <p class="muted">
+      No flights found, or your search session expired. Every road has other days: try another
+      period.
+    </p>
   } @else {
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">Flight</th>
-          <th scope="col">Origin</th>
-          <th scope="col">Destination</th>
-          <th scope="col">Departure</th>
-          <th scope="col">Price</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (flight of flights(); track flight.flightNumber + flight.departureTime) {
-          <tr>
-            <td>{{ flight.flightNumber }}</td>
-            <td>{{ flight.origin }}</td>
-            <td>{{ flight.destination }}</td>
-            <td>{{ flight.departureTime | date: 'dd/MM/yyyy HH:mm' }}</td>
-            <td>
-              <strong>{{ flight.price }} {{ flight.currency }}</strong>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
+    <div class="table-scroll">
+      <table mat-table [dataSource]="flights()">
+        <ng-container matColumnDef="flight">
+          <th mat-header-cell *matHeaderCellDef>Flight</th>
+          <td mat-cell *matCellDef="let flight">{{ flight.flightNumber }}</td>
+        </ng-container>
+        <ng-container matColumnDef="origin">
+          <th mat-header-cell *matHeaderCellDef>Origin</th>
+          <td mat-cell *matCellDef="let flight">{{ flight.origin }}</td>
+        </ng-container>
+        <ng-container matColumnDef="destination">
+          <th mat-header-cell *matHeaderCellDef>Destination</th>
+          <td mat-cell *matCellDef="let flight">{{ flight.destination }}</td>
+        </ng-container>
+        <ng-container matColumnDef="departure">
+          <th mat-header-cell *matHeaderCellDef>Departure</th>
+          <td mat-cell *matCellDef="let flight">
+            {{ flight.departureTime | date: 'dd/MM/yyyy HH:mm' }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="price">
+          <th mat-header-cell *matHeaderCellDef>Price</th>
+          <td mat-cell *matCellDef="let flight">
+            <strong>{{ flight.price }} {{ flight.currency }}</strong>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let flight; columns: columns"></tr>
+      </table>
+    </div>
   }
 </main>

@@ -16,6 +16,8 @@ import { geoConicConformal, geoPath } from 'd3-geo';
 import { Selection, select } from 'd3-selection';
 import 'd3-transition';
 import { ZoomBehavior, ZoomTransform, zoom, zoomIdentity } from 'd3-zoom';
+import { MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
 import { BusAvailability } from '../../services/bus-availability';
 import { Airport } from '../../services/network-http-client';
 import { CountryShape, MapData } from '../../services/map-data';
@@ -114,7 +116,7 @@ interface Zoomer {
 @Component({
   selector: 'app-trip-map',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LoadingIndicator],
+  imports: [LoadingIndicator, MatIcon, MatIconButton],
   templateUrl: './trip-map.html',
   styleUrl: './trip-map.css',
 })

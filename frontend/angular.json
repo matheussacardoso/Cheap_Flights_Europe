@@ -30,7 +30,7 @@
                 "output": "flags"
               }
             ],
-            "styles": ["src/styles.css"]
+            "styles": ["src/styles.scss"]
           },
           "configurations": {
             "production": {

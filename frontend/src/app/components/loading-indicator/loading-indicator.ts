@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { MatProgressBar } from '@angular/material/progress-bar';
+import { MatProgressSpinner } from '@angular/material/progress-spinner';
 
 /**
  * Shows that something is running and what: a spinner, a title ("Finding the cheapest dates")
@@ -8,6 +10,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 @Component({
   selector: 'app-loading-indicator',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [MatProgressBar, MatProgressSpinner],
   templateUrl: './loading-indicator.html',
   styleUrl: './loading-indicator.css',
   host: { '[class.is-compact]': 'compact()' },

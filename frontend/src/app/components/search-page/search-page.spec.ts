@@ -11,6 +11,9 @@ import { TripSelection } from '../../services/trip-selection';
 import { AIRPORTS, PT_ROUTES, routesFor, answerRoutes } from '../../testing/network-fixtures';
 import { answerBusNetwork } from '../../testing/bus-fixtures';
 import { SearchPage } from './search-page';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { MatButtonToggleHarness } from '@angular/material/button-toggle/testing';
+import { MatSelectHarness } from '@angular/material/select/testing';
 
 @Component({ template: '' })
 class ResultsStub {}
@@ -55,34 +58,55 @@ describe('SearchPage', () => {
     http.verify();
   });
 
+  function loader() {
+    return TestbedHarnessEnvironment.loader(harness.fixture);
+  }
+
+  function select(id: string): Promise<MatSelectHarness> {
+    return loader().getHarness(MatSelectHarness.with({ selector: `#${id}` }));
+  }
+
   /** The options of a select, as their visible text. */
-  function options(id: string): string[] {
-    return [...element.querySelectorAll(`#${id} option`)].map(
-      (option) => option.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-    );
+  async function options(id: string): Promise<string[]> {
+    const field = await select(id);
+    await field.open();
+    const texts = await Promise.all((await field.getOptions()).map((o) => o.getText()));
+    await field.close();
+    return texts.map((text) => text.replace(/\s+/g, ' ').trim());
   }
 
-  function select(id: string): HTMLSelectElement {
-    return element.querySelector<HTMLSelectElement>(`#${id}`)!;
+  /** What a select shows as chosen. */
+  async function chosen(id: string): Promise<string> {
+    return (await (await select(id)).getValueText()).replace(/\s+/g, ' ').trim();
   }
 
-  /** Types into a field or picks an option, as the user would. */
-  async function fill(id: string, value: string): Promise<void> {
-    const field = element.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`)!;
+  /** Picks the option with this text, as the user would. */
+  async function pick(id: string, text: string): Promise<void> {
+    const field = await select(id);
+    await field.open();
+    await field.clickOptions({ text });
+  }
+
+  /** Types into a text or date field, as the user would. */
+  async function type(id: string, value: string): Promise<void> {
+    const field = element.querySelector<HTMLInputElement>(`#${id}`)!;
     field.value = value;
-    field.dispatchEvent(new Event(field instanceof HTMLSelectElement ? 'change' : 'input'));
+    field.dispatchEvent(new Event('input'));
     await harness.fixture.whenStable();
+  }
+
+  async function toggle(text: string): Promise<void> {
+    await (await loader().getHarness(MatButtonToggleHarness.with({ text }))).check();
   }
 
   async function chooseOneWay(): Promise<void> {
-    element.querySelector<HTMLInputElement>('input[value="one-way"]')!.click();
-    await harness.fixture.whenStable();
+    await toggle('One way');
   }
 
   it('asks for the trip and the date when submitting an empty one-way search', async () => {
     await open('/search');
     await chooseOneWay();
-    await fill('date_from', '');
+    await type('date_from', '');
     element.querySelector('form')!.dispatchEvent(new Event('submit'));
     await harness.fixture.whenStable();
 
@@ -96,11 +120,11 @@ describe('SearchPage', () => {
     http.expectOne(routesFor('PT')).flush(PT_ROUTES);
     await harness.fixture.whenStable();
 
-    const boxes = [...element.querySelectorAll<HTMLInputElement>('[role="combobox"]')];
+    const boxes = [...element.querySelectorAll<HTMLInputElement>('input[role="combobox"]')];
     expect(boxes.map((box) => box.value)).toEqual(['OPO Airport', 'Any airport in Spain']);
 
     await chooseOneWay();
-    await fill('date_from', '2026-12-04');
+    await type('date_from', '2026-12-04');
     element.querySelector('form')!.dispatchEvent(new Event('submit'));
     const search = http.expectOne((req) => req.url.endsWith('/flights/cheapest'));
     expect(search.request.params.get('origin')).toBe('OPO');
@@ -117,14 +141,15 @@ describe('SearchPage', () => {
     await open('/search');
 
     // Thursday to Monday by default: the next 8 weeks after the first trip are preselected.
-    expect(select('date_from').value).toBe('2026-11-19');
-    expect(select('date_to').value).toBe('2027-01-14');
-    expect(options('date_from')[0]).toBe('Thu 19 Nov → Mon 23 Nov 2026');
-    expect(options('date_from').every((text) => text.startsWith('Thu'))).toBe(true);
-    expect(options('date_from').length).toBe(52);
+    expect(await chosen('date_from')).toBe('Thu 19 Nov → Mon 23 Nov 2026');
+    expect(await chosen('date_to')).toBe('Thu 14 Jan → Mon 18 Jan 2027');
+    const first = await options('date_from');
+    expect(first[0]).toBe('Thu 19 Nov → Mon 23 Nov 2026');
+    expect(first.every((text) => text.startsWith('Thu'))).toBe(true);
+    expect(first.length).toBe(52);
 
     // The last trip is the same weekday, at most 92 days after the first: 14 choices.
-    const last = options('date_to');
+    const last = await options('date_to');
     expect(last[0]).toBe('Thu 19 Nov → Mon 23 Nov 2026');
     expect(last.at(-1)).toBe('Thu 18 Feb → Mon 22 Feb 2027');
     expect(element.querySelector('#period-summary')?.textContent).toContain(
@@ -134,20 +159,17 @@ describe('SearchPage', () => {
 
   it('moves both dates to the new days when the days change', async () => {
     await open('/search');
-    [...element.querySelectorAll<HTMLButtonElement>('.preset')]
-      .find((button) => button.textContent?.trim() === 'Fri → Tue')!
-      .click();
-    await harness.fixture.whenStable();
+    await toggle('Fri → Tue');
 
     // Both dates move to the Friday of the same week; the period keeps its 8 weeks.
-    expect(select('date_from').value).toBe('2026-11-20');
-    expect(select('date_to').value).toBe('2027-01-15');
+    expect(await chosen('date_from')).toBe('Fri 20 Nov → Tue 24 Nov 2026');
+    expect(await chosen('date_to')).toBe('Fri 15 Jan → Tue 19 Jan 2027');
     // Today is a Friday, so it is the first choice.
-    expect(options('date_from')[0]).toBe('Fri 13 Nov → Tue 17 Nov 2026');
+    expect((await options('date_from'))[0]).toBe('Fri 13 Nov → Tue 17 Nov 2026');
 
     // A first trip after the last one pulls the last one along, 8 weeks later.
-    await fill('date_from', '2027-01-22');
-    expect(select('date_to').value).toBe('2027-03-19');
+    await pick('date_from', 'Fri 22 Jan → Tue 26 Jan 2027');
+    expect(await chosen('date_to')).toBe('Fri 19 Mar → Tue 23 Mar 2027');
   });
 
   it('searches round trips and shows what is running while it waits', async () => {

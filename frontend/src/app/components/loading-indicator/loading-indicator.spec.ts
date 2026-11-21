@@ -21,7 +21,7 @@ describe('LoadingIndicator', () => {
     expect(status.getAttribute('aria-live')).toBe('polite');
     expect(status.textContent).toContain('Finding the cheapest dates');
     expect(status.textContent).toContain('Comparing 9 trips.');
-    expect(element.querySelector('.bar')).not.toBeNull();
+    expect(element.querySelector('mat-progress-bar')).not.toBeNull();
   });
 
   it('is a single line when compact', async () => {
@@ -29,6 +29,6 @@ describe('LoadingIndicator', () => {
 
     expect(element.classList).toContain('is-compact');
     expect(element.textContent).not.toContain('hidden');
-    expect(element.querySelector('.bar')).toBeNull();
+    expect(element.querySelector('mat-progress-bar')).toBeNull();
   });
 });

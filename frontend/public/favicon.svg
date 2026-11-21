@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Explore with me: a gold compass star on the night sky. -->
+  <rect width="64" height="64" rx="14" fill="#1e3557"/>
+  <path d="M32 6 L37 27 L58 32 L37 37 L32 58 L27 37 L6 32 L27 27 Z" fill="#e9c46a"/>
+  <path d="M32 18 L34.5 29.5 L46 32 L34.5 34.5 L32 46 L29.5 34.5 L18 32 L29.5 29.5 Z" fill="#1e3557"/>
+  <circle cx="32" cy="32" r="3" fill="#e9c46a"/>
+</svg>

@@ -25,6 +25,10 @@
   gap: var(--space-2);
 }
 
+.spinner {
+  flex-shrink: 0;
+}
+
 .text {
   display: flex;
   flex-direction: column;
@@ -46,68 +50,10 @@
   color: var(--color-text-muted);
 }
 
-.spinner {
-  flex-shrink: 0;
-  width: var(--space-8);
-  height: var(--space-8);
-  border: var(--space-1) solid var(--color-primary-subtle);
-  border-top-color: var(--color-primary);
-  border-radius: var(--radius-round);
-  animation: spin var(--loading-spin-duration) linear infinite;
-}
+/* The journey's gold on the sand. */
+mat-progress-bar {
+  --mat-progress-bar-active-indicator-color: var(--color-gold);
+  --mat-progress-bar-track-color: var(--color-gold-subtle);
 
-:host(.is-compact) .spinner {
-  width: var(--space-4);
-  height: var(--space-4);
-  border-width: calc(var(--space-1) / 2);
-}
-
-/* Indeterminate progress: a short bar sliding across, since the API gives no real progress. */
-.bar {
-  overflow: hidden;
-  height: var(--space-1);
   border-radius: var(--radius-sm);
-  background-color: var(--color-primary-subtle);
-}
-
-.bar span {
-  display: block;
-  width: 40%;
-  height: 100%;
-  border-radius: var(--radius-sm);
-  background-color: var(--color-primary);
-  animation: slide var(--loading-slide-duration) ease-in-out infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes slide {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(250%);
-  }
-}
-
-/* Less motion: a slow pulse instead of spinning and sliding. */
-@media (prefers-reduced-motion: reduce) {
-  .spinner,
-  .bar span {
-    animation: pulse var(--loading-slide-duration) ease-in-out infinite;
-  }
-
-  .bar span {
-    width: 100%;
-  }
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.4;
-  }
 }

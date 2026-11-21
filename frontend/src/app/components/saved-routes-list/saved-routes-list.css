@@ -21,36 +21,34 @@
 /* A route is one pill: the route button and its remove button share the border. */
 .route {
   display: flex;
+  align-items: center;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   background-color: var(--color-surface);
 }
 
 .route:hover {
-  border-color: var(--color-primary);
+  border-color: var(--color-gold);
 }
 
 .route.is-current {
-  border-color: var(--color-primary);
-  background-color: var(--color-primary-subtle);
-}
-
-.route-button,
-.remove-button {
-  display: flex;
-  align-items: center;
-  height: var(--control-height);
-  border: none;
-  background: none;
-  color: var(--color-text);
-  font: inherit;
-  cursor: pointer;
+  border-color: var(--color-gold);
+  background-color: var(--color-gold-subtle);
 }
 
 .route-button {
+  display: flex;
+  align-items: center;
   gap: var(--space-2);
+  height: var(--control-height);
   padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
   font-weight: bold;
+  cursor: pointer;
 }
 
 .route-button[aria-disabled='true'] {
@@ -58,15 +56,9 @@
 }
 
 .remove-button {
-  justify-content: center;
-  width: var(--control-height);
   border-left: 1px solid var(--color-border-subtle);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   color: var(--color-text-muted);
-  font-size: var(--font-size-lg);
-}
-
-.remove-button:hover {
-  color: var(--color-danger);
 }
 
 .flag {
@@ -95,9 +87,5 @@
 .file-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.file-actions .btn {
   gap: var(--space-2);
 }

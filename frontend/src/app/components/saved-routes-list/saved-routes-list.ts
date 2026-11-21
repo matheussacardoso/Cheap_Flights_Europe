@@ -1,5 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { MatButton, MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
 import { FlagUrlPipe } from '../../pipes/flag-url-pipe';
 import {
   ImportResult,
@@ -17,7 +19,7 @@ import { TripSelection } from '../../services/trip-selection';
 @Component({
   selector: 'app-saved-routes-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FlagUrlPipe],
+  imports: [FlagUrlPipe, MatButton, MatIcon, MatIconButton],
   templateUrl: './saved-routes-list.html',
   styleUrl: './saved-routes-list.css',
 })

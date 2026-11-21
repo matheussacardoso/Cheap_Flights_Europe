@@ -52,8 +52,9 @@ describe('SavedRoutesList', () => {
   }
 
   function fileButtons(): string[] {
+    // The label only: the icon's ligature text ("download") is decoration.
     return [...element.querySelectorAll<HTMLButtonElement>('.file-actions button')].map((button) =>
-      button.textContent!.replace(/[↓↑]/, '').trim(),
+      button.querySelector('.label')!.textContent!.trim(),
     );
   }
 

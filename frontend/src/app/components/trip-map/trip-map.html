@@ -14,6 +14,7 @@
   <!-- Before the SVG in Tab order, so keyboard users reach zoom without passing every dot. -->
   <div class="controls" role="group" aria-label="Map zoom">
     <button
+      matIconButton
       type="button"
       class="control"
       aria-label="Zoom in"
@@ -21,9 +22,10 @@
       [disabled]="!canZoomIn()"
       (click)="zoomIn()"
     >
-      <span aria-hidden="true">+</span>
+      <mat-icon>add</mat-icon>
     </button>
     <button
+      matIconButton
       type="button"
       class="control"
       aria-label="Zoom out"
@@ -31,16 +33,17 @@
       [disabled]="!canZoomOut()"
       (click)="zoomOut()"
     >
-      <span aria-hidden="true">−</span>
+      <mat-icon>remove</mat-icon>
     </button>
     <button
+      matIconButton
       type="button"
       class="control"
       aria-label="Reset view"
       title="Reset view"
       (click)="resetView()"
     >
-      <span aria-hidden="true">⤢</span>
+      <mat-icon>center_focus_strong</mat-icon>
     </button>
   </div>
 

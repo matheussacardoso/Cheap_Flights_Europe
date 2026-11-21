@@ -12,6 +12,8 @@ import {
   routesFor,
 } from '../../testing/network-fixtures';
 import { TripFields } from './trip-fields';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { MatAutocompleteHarness } from '@angular/material/autocomplete/testing';
 
 /** Braga: 44 km from Porto, so it is suggested as a nearby departure. */
 const BRAGA: Airport = airport('BGZ', 'PT', 'Portugal', [41.58, -8.42]);
@@ -53,9 +55,10 @@ describe('TripFields: extra departure airports', () => {
   }
 
   const section = () => element.querySelector('.extra-origins');
+  /** What each suggestion says to a screen reader (its icon is decoration). */
   const suggestions = () =>
     [...element.querySelectorAll<HTMLButtonElement>('.suggestion')].map((b) =>
-      b.textContent?.replace(/\s+/g, ' ').trim(),
+      b.getAttribute('aria-label'),
     );
 
   it('appears only once From and To are chosen', async () => {
@@ -66,7 +69,7 @@ describe('TripFields: extra departure airports', () => {
 
   it('suggests nearby airports that fly to the destination, and adds one with a click', async () => {
     await portoToMalaga();
-    expect(suggestions()).toEqual(['+ BGZ Airport 44 km']);
+    expect(suggestions()).toEqual(['Add BGZ Airport, 44 km away']);
 
     element.querySelector<HTMLButtonElement>('.suggestion')!.click();
     await fixture.whenStable();
@@ -77,15 +80,12 @@ describe('TripFields: extra departure airports', () => {
 
   it('adds a farther airport from the box, and removes it from its chip', async () => {
     await portoToMalaga();
-    const box = element.querySelector<HTMLInputElement>('.add-origin input')!;
-    box.dispatchEvent(new Event('focus'));
-    box.value = 'lis';
-    box.dispatchEvent(new Event('input'));
-    await fixture.whenStable();
-    const option = element.querySelector<HTMLElement>('.add-origin [role="option"]')!;
-    expect(option.textContent).toContain('km away');
-    option.click();
-    await fixture.whenStable();
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const box = await loader.getHarness(MatAutocompleteHarness.with({ ancestor: '.add-origin' }));
+    await box.enterText('lis');
+    const [option] = await box.getOptions();
+    expect(await option.getText()).toContain('km away');
+    await option.click();
     expect(trip.origins()).toEqual(['OPO', 'LIS']);
 
     element.querySelector<HTMLButtonElement>('[aria-label="Remove LIS Airport"]')!.click();

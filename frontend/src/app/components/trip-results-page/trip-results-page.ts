@@ -1,5 +1,19 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { MatButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
+import {
+  MatCell,
+  MatCellDef,
+  MatColumnDef,
+  MatHeaderCell,
+  MatHeaderCellDef,
+  MatHeaderRow,
+  MatHeaderRowDef,
+  MatRow,
+  MatRowDef,
+  MatTable,
+} from '@angular/material/table';
 import { RouterLink } from '@angular/router';
 import { BusRideResponse, BusTripResponse } from '../../services/bus-http-client';
 import { FlightResponse, TripResponse } from '../../services/flight-http-client';
@@ -47,7 +61,24 @@ interface Verdict {
 @Component({
   selector: 'app-trip-results-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CurrencyPipe, DatePipe, RoundTripCell, RouterLink],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    MatButton,
+    MatCell,
+    MatCellDef,
+    MatColumnDef,
+    MatHeaderCell,
+    MatHeaderCellDef,
+    MatHeaderRow,
+    MatHeaderRowDef,
+    MatIcon,
+    MatRow,
+    MatRowDef,
+    MatTable,
+    RoundTripCell,
+    RouterLink,
+  ],
   templateUrl: './trip-results-page.html',
   styleUrl: './trip-results-page.css',
 })
@@ -57,6 +88,11 @@ export class TripResultsPage {
 
   /** Buses were searched and found: the table compares. */
   protected readonly compared = computed(() => this.results.busTrips().length > 0);
+  /** The table's columns: the bus and the verdict only when buses were compared. */
+  protected readonly columns = computed(() =>
+    this.compared() ? ['dates', 'to', 'flight', 'bus', 'better'] : ['dates', 'to', 'flight'],
+  );
+  protected readonly trackRow = (_: number, row: WeekRow) => row.key;
   /** Why there's no bus column, e.g. "Flixbus doesn't go to Palma de Mallorca: flights only." */
   protected readonly busNote = this.results.busNote;
 

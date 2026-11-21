@@ -9,6 +9,7 @@
   (cleared)="trip.clearOrigin()"
 />
 <button
+  matIconButton
   type="button"
   class="swap"
   aria-label="Swap From and To"
@@ -16,7 +17,7 @@
   [disabled]="!trip.canSwap()"
   (click)="trip.swap()"
 >
-  <span aria-hidden="true">⇅</span>
+  <mat-icon>swap_vert</mat-icon>
 </button>
 <app-airport-search
   class="to"
@@ -40,30 +41,24 @@
     </p>
 
     @if (extraOrigins().length) {
-      <ul class="chips">
+      <mat-chip-set class="chips" aria-label="Extra departure airports">
         @for (extra of extraOrigins(); track extra.airport.code) {
-          <li class="chip">
+          <mat-chip class="chip" (removed)="trip.removeOrigin(extra.airport.code)">
             <img
+              matChipAvatar
               class="flag"
               [src]="extra.airport.countryCode | flagUrl"
               alt=""
               width="24"
               height="16"
             />
-            <span>{{ extra.airport.name }}</span>
-            <span class="km">{{ extra.km }} km</span>
-            <button
-              type="button"
-              class="chip-remove"
-              [attr.aria-label]="'Remove ' + extra.airport.name"
-              title="Remove"
-              (click)="trip.removeOrigin(extra.airport.code)"
-            >
-              <span aria-hidden="true">×</span>
+            {{ extra.airport.name }} <span class="km">{{ extra.km }} km</span>
+            <button matChipRemove type="button" [attr.aria-label]="'Remove ' + extra.airport.name">
+              <mat-icon>cancel</mat-icon>
             </button>
-          </li>
+          </mat-chip>
         }
-      </ul>
+      </mat-chip-set>
     }
 
     @if (trip.canAddOrigin()) {
@@ -77,12 +72,13 @@
           <div class="suggestions" role="group" aria-label="Nearby airports">
             @for (nearby of suggestions(); track nearby.airport.code) {
               <button
+                matButton="outlined"
                 type="button"
                 class="suggestion"
                 [attr.aria-label]="'Add ' + nearby.airport.name + ', ' + nearby.km + ' km away'"
                 (click)="addOrigin(nearby.airport.code)"
               >
-                <span aria-hidden="true">+</span>
+                <mat-icon>add</mat-icon>
                 {{ nearby.airport.name }}
                 <span class="km">{{ nearby.km }} km</span>
               </button>

@@ -1,5 +1,11 @@
 <div class="loading" role="status" aria-live="polite">
-  <span class="spinner" aria-hidden="true"></span>
+  <mat-progress-spinner
+    class="spinner"
+    mode="indeterminate"
+    [diameter]="compact() ? 16 : 32"
+    [strokeWidth]="compact() ? 2 : 4"
+    aria-hidden="true"
+  />
   <div class="text">
     <p class="title">{{ title() }}</p>
     @if (detail() && !compact()) {
@@ -8,5 +14,6 @@
   </div>
 </div>
 @if (!compact()) {
-  <div class="bar" aria-hidden="true"><span></span></div>
+  <!-- Indeterminate: the API gives no real progress, so it never fakes a percentage. -->
+  <mat-progress-bar mode="indeterminate" aria-hidden="true" />
 }
